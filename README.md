@@ -7,7 +7,7 @@
 <div align="center"><a title="" href="https://github.com/zjykzj/YOLOv5"><img align="center" src="./imgs/YOLOv5.png" alt=""></a></div>
 
 <p align="center">
-  «YOLOv5» implements a tiny version of the original [ultralytics/yolov5](https://github.com/ultralytics/yolov5)
+  «YOLOv5» implements a tiny version of the original <a href="https://github.com/ultralytics/yolov5">ultralytics/yolov5</a>
 <br>
 <br>
   <a href="https://github.com/RichardLitt/standard-readme"><img src="https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square" alt=""></a>
