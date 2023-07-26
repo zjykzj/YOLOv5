@@ -156,3 +156,8 @@ def is_ascii(s=''):
 def clean_str(s):
     # Cleans a string by replacing special characters with underscore _
     return re.sub(pattern="[|@#!¡·$€%&()=?¿^*;:,¨´><+]", repl="_", string=s)
+
+
+def methods(instance):
+    # Get class/instance methods
+    return [f for f in dir(instance) if callable(getattr(instance, f)) and not f.startswith("__")]

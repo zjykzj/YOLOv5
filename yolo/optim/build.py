@@ -8,11 +8,9 @@
 """
 
 import os
-import math
 
 import torch
 import torch.nn as nn
-from torch.optim import lr_scheduler
 
 from ..utils.logger import LOGGER
 from ..utils.misc import colorstr
@@ -63,27 +61,3 @@ def smart_optimizer(model, name='Adam', lr=0.001, momentum=0.9, decay=1e-5):
     LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}(lr={lr}) with parameter groups "
                 f"{len(g[1])} weight(decay=0.0), {len(g[0])} weight(decay={decay}), {len(g[2])} bias")
     return optimizer
-
-
-def one_cycle(y1=0.0, y2=1.0, steps=100):
-    # lambda function for sinusoidal ramp from y1 to y2 https://arxiv.org/pdf/1812.01187.pdf
-    return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
-
-
-def build_optimizer(hyp, opt, batch_size, model):
-    nbs = 64  # nominal batch size
-    accumulate = max(round(nbs / batch_size), 1)  # accumulate loss before optimizing
-    hyp['weight_decay'] *= batch_size * accumulate / nbs  # scale weight_decay
-    optimizer = smart_optimizer(model, opt.optimizer, hyp['lr0'], hyp['momentum'], hyp['weight_decay'])
-
-    return optimizer
-
-
-def build_scheduler(opt, hyp, epochs, optimizer):
-    if opt.cos_lr:
-        lf = one_cycle(1, hyp['lrf'], epochs)  # cosine 1->hyp['lrf']
-    else:
-        lf = lambda x: (1 - x / epochs) * (1.0 - hyp['lrf']) + hyp['lrf']  # linear
-    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  # plot_lr_scheduler(optimizer, scheduler, epochs)
-
-    return scheduler

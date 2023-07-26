@@ -17,6 +17,7 @@ import random
 
 import numpy as np
 import pkg_resources as pkg
+from copy import deepcopy
 from pathlib import Path
 from subprocess import check_output
 
@@ -116,3 +117,46 @@ def copy_attr(a, b, include=(), exclude=()):
             continue
         else:
             setattr(a, k, v)
+
+
+def check_online():
+    # Check internet connectivity
+    import socket
+
+    def run_once():
+        # Check once
+        try:
+            socket.create_connection(("1.1.1.1", 443), 5)  # check host accessibility
+            return True
+        except OSError:
+            return False
+
+    return run_once() or run_once()  # check twice to increase robustness to intermittent connectivity issues
+
+
+def check_amp(model):
+    # Check PyTorch Automatic Mixed Precision (AMP) functionality. Return True on correct operation
+    from ..model.impl.common import AutoShape, DetectMultiBackend
+
+    def amp_allclose(model, im):
+        # All close FP32 vs AMP results
+        m = AutoShape(model, verbose=False)  # model
+        a = m(im).xywhn[0]  # FP32 inference
+        m.amp = True
+        b = m(im).xywhn[0]  # AMP inference
+        return a.shape == b.shape and torch.allclose(a, b, atol=0.1)  # close to 10% absolute tolerance
+
+    prefix = colorstr('AMP: ')
+    device = next(model.parameters()).device  # get model device
+    if device.type in ('cpu', 'mps'):
+        return False  # AMP only used on CUDA devices
+    f = ROOT / 'data' / 'images' / 'bus.jpg'  # image to check
+    im = f if f.exists() else 'https://ultralytics.com/images/bus.jpg' if check_online() else np.ones((640, 640, 3))
+    try:
+        assert amp_allclose(deepcopy(model), im) or amp_allclose(DetectMultiBackend('yolov5n.pt', device), im)
+        LOGGER.info(f'{prefix}checks passed ✅')
+        return True
+    except Exception:
+        help_url = 'https://github.com/ultralytics/yolov5/issues/7908'
+        LOGGER.warning(f'{prefix}checks failed ❌, disabling Automatic Mixed Precision. See {help_url}')
+        return False
