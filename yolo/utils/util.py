@@ -20,9 +20,9 @@ import pkg_resources as pkg
 from pathlib import Path
 from subprocess import check_output
 
-from misc import colorstr, emojis, make_divisible
-from logger import LOGGER
-from decorators import TryExcept
+from .misc import colorstr, emojis, make_divisible
+from .logger import LOGGER
+from .decorators import TryExcept
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
@@ -109,3 +109,10 @@ def check_img_size(imgsz, s=32, floor=0):
     return new_size
 
 
+def copy_attr(a, b, include=(), exclude=()):
+    # Copy attributes from b to a, options to only include [...] and to exclude [...]
+    for k, v in b.__dict__.items():
+        if (len(include) and k not in include) or k.startswith('_') or k in exclude:
+            continue
+        else:
+            setattr(a, k, v)

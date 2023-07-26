@@ -13,10 +13,10 @@ import os
 from pathlib import Path
 from subprocess import check_output
 
-from logger import LOGGER
-from misc import colorstr
-from decorators import TryExcept, WorkingDirectory
-from util import check_requirements
+from .logger import LOGGER
+from .misc import colorstr
+from .decorators import TryExcept, WorkingDirectory
+from .util import check_requirements
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory

@@ -11,8 +11,8 @@ import math
 
 from copy import deepcopy
 
-from ..utils.torch_util import de_parallel
-from ..utils.misc import copy_attr
+from yolo.utils.torch_util import de_parallel
+from yolo.utils.misc import copy_attr
 
 
 class ModelEMA:

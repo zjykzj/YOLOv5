@@ -14,11 +14,12 @@ import urllib
 import sys
 import yaml
 import datetime
+import platform
 
 from pathlib import Path
 from zipfile import ZipFile, is_zipfile
 
-from logger import LOGGER
+from .logger import LOGGER
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory

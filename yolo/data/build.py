@@ -16,13 +16,12 @@ from pathlib import Path
 from zipfile import is_zipfile
 from tarfile import is_tarfile
 
-from ..model.autobatch import check_train_batch_size
+from ..model.impl.autobatch import check_train_batch_size
 from ..utils.downloads import download
 from ..utils.misc import colorstr, emojis, is_ascii
 from ..utils.logger import LOGGER
-from ..utils.torch_util import torch_distributed_zero_first
 from ..utils.file_util import yaml_load, unzip_file, check_font
-from dataloaders import create_dataloader
+from .dataloaders import create_dataloader
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory

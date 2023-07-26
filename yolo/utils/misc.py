@@ -16,7 +16,7 @@ import platform
 
 from pathlib import Path
 
-from logger import LOGGER
+from yolo.utils.logger import LOGGER
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory

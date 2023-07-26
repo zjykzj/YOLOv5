@@ -10,9 +10,9 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from ..utils.decorators import TryExcept
-from ..utils.logger import LOGGER
-from ..utils.misc import colorstr
+from yolo.utils.decorators import TryExcept
+from yolo.utils.logger import LOGGER
+from yolo.utils.misc import colorstr
 
 PREFIX = colorstr('AutoAnchor: ')
 
