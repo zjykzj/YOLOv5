@@ -17,7 +17,10 @@ import datetime
 import platform
 
 from pathlib import Path
+from itertools import repeat
+from multiprocessing.pool import ThreadPool
 from zipfile import ZipFile, is_zipfile
+from tarfile import is_tarfile
 
 from .logger import LOGGER
 
@@ -110,28 +113,6 @@ def file_date(path=__file__):
     return f'{t.year}-{t.month}-{t.day}'
 
 
-def yaml_load(file='data.yaml'):
-    # Single-line safe yaml loading
-    with open(file, errors='ignore') as f:
-        return yaml.safe_load(f)
-
-
-def yaml_save(file='data.yaml', data={}):
-    # Single-line safe yaml saving
-    with open(file, 'w') as f:
-        yaml.safe_dump({k: str(v) if isinstance(v, Path) else v for k, v in data.items()}, f, sort_keys=False)
-
-
-def unzip_file(file, path=None, exclude=('.DS_Store', '__MACOSX')):
-    # Unzip a *.zip file to path/, excluding files containing strings in exclude list
-    if path is None:
-        path = Path(file).parent  # default path
-    with ZipFile(file) as zipObj:
-        for f in zipObj.namelist():  # list all archived filenames in the zip
-            if all(x not in f for x in exclude):
-                zipObj.extract(f, path=path)
-
-
 def check_font(font=FONT, progress=False):
     # Download font to CONFIG_DIR if necessary
     font = Path(font)
@@ -170,3 +151,80 @@ def user_config_dir(dir='Ultralytics', env_var='YOLOV5_CONFIG_DIR'):
 
 
 CONFIG_DIR = user_config_dir()  # Ultralytics settings dir
+
+
+def yaml_load(file='data.yaml'):
+    # Single-line safe yaml loading
+    with open(file, errors='ignore') as f:
+        return yaml.safe_load(f)
+
+
+def yaml_save(file='data.yaml', data={}):
+    # Single-line safe yaml saving
+    with open(file, 'w') as f:
+        yaml.safe_dump({k: str(v) if isinstance(v, Path) else v for k, v in data.items()}, f, sort_keys=False)
+
+
+def unzip_file(file, path=None, exclude=('.DS_Store', '__MACOSX')):
+    # Unzip a *.zip file to path/, excluding files containing strings in exclude list
+    if path is None:
+        path = Path(file).parent  # default path
+    with ZipFile(file) as zipObj:
+        for f in zipObj.namelist():  # list all archived filenames in the zip
+            if all(x not in f for x in exclude):
+                zipObj.extract(f, path=path)
+
+
+def url2file(url):
+    # Convert URL to filename, i.e. https://url.com/file.txt?auth -> file.txt
+    url = str(Path(url)).replace(':/', '://')  # Pathlib turns :// -> :/
+    return Path(urllib.parse.unquote(url)).name.split('?')[0]  # '%2F' to '/', split https://url.com/file.txt?auth
+
+
+def download(url, dir='.', unzip=True, delete=True, curl=False, threads=1, retry=3):
+    # Multithreaded file download and unzip function, used in data.yaml for autodownload
+    def download_one(url, dir):
+        # Download 1 file
+        success = True
+        if os.path.isfile(url):
+            f = Path(url)  # filename
+        else:  # does not exist
+            f = dir / Path(url).name
+            LOGGER.info(f'Downloading {url} to {f}...')
+            for i in range(retry + 1):
+                if curl:
+                    s = 'sS' if threads > 1 else ''  # silent
+                    r = os.system(
+                        f'curl -# -{s}L "{url}" -o "{f}" --retry 9 -C -')  # curl download with retry, continue
+                    success = r == 0
+                else:
+                    torch.hub.download_url_to_file(url, f, progress=threads == 1)  # torch download
+                    success = f.is_file()
+                if success:
+                    break
+                elif i < retry:
+                    LOGGER.warning(f'⚠️ Download failure, retrying {i + 1}/{retry} {url}...')
+                else:
+                    LOGGER.warning(f'❌ Failed to download {url}...')
+
+        if unzip and success and (f.suffix == '.gz' or is_zipfile(f) or is_tarfile(f)):
+            LOGGER.info(f'Unzipping {f}...')
+            if is_zipfile(f):
+                unzip_file(f, dir)  # unzip
+            elif is_tarfile(f):
+                os.system(f'tar xf {f} --directory {f.parent}')  # unzip
+            elif f.suffix == '.gz':
+                os.system(f'tar xfz {f} --directory {f.parent}')  # unzip
+            if delete:
+                f.unlink()  # remove zip
+
+    dir = Path(dir)
+    dir.mkdir(parents=True, exist_ok=True)  # make directory
+    if threads > 1:
+        pool = ThreadPool(threads)
+        pool.imap(lambda x: download_one(*x), zip(url, repeat(dir)))  # multithreaded
+        pool.close()
+        pool.join()
+    else:
+        for u in [url] if isinstance(url, (str, Path)) else url:
+            download_one(u, dir)

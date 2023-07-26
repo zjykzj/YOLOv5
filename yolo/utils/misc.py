@@ -9,10 +9,13 @@
 from typing import Optional
 
 import os
+import re
+import sys
 import math
 import torch
 import inspect
 import platform
+import IPython
 
 from pathlib import Path
 
@@ -21,6 +24,60 @@ from yolo.utils.logger import LOGGER
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
 RANK = int(os.getenv('RANK', -1))
+
+TQDM_BAR_FORMAT = '{l_bar}{bar:10}| {n_fmt}/{total_fmt} {elapsed}'  # tqdm bar format
+
+
+def is_ascii(s=''):
+    # Is string composed of all ASCII (no UTF) characters? (note str().isascii() introduced in python 3.7)
+    s = str(s)  # convert list, tuple, None, etc. to str
+    return len(s.encode().decode('ascii', 'ignore')) == len(s)
+
+
+def is_chinese(s='人工智能'):
+    # Is string composed of any Chinese characters?
+    return bool(re.search('[\u4e00-\u9fff]', str(s)))
+
+
+def is_colab():
+    # Is environment a Google Colab instance?
+    return 'google.colab' in sys.modules
+
+
+def is_notebook():
+    # Is environment a Jupyter notebook? Verified on Colab, Jupyterlab, Kaggle, Paperspace
+    ipython_type = str(type(IPython.get_ipython()))
+    return 'colab' in ipython_type or 'zmqshell' in ipython_type
+
+
+def is_kaggle():
+    # Is environment a Kaggle Notebook?
+    return os.environ.get('PWD') == '/kaggle/working' and os.environ.get('KAGGLE_URL_BASE') == 'https://www.kaggle.com'
+
+
+def is_docker() -> bool:
+    """Check if the process runs inside a docker container."""
+    if Path("/.dockerenv").exists():
+        return True
+    try:  # check if docker is in control groups
+        with open("/proc/self/cgroup") as file:
+            return any("docker" in line for line in file)
+    except OSError:
+        return False
+
+
+def is_writeable(dir, test=False):
+    # Return True if directory has write permissions, test opening a file with write permissions if test=True
+    if not test:
+        return os.access(dir, os.W_OK)  # possible issues on Windows
+    file = Path(dir) / 'tmp.txt'
+    try:
+        with open(file, 'w'):  # open file with write permissions
+            pass
+        file.unlink()  # remove file
+        return True
+    except OSError:
+        return False
 
 
 def emojis(str=''):
@@ -94,3 +151,8 @@ def is_ascii(s=''):
     # Is string composed of all ASCII (no UTF) characters? (note str().isascii() introduced in python 3.7)
     s = str(s)  # convert list, tuple, None, etc. to str
     return len(s.encode().decode('ascii', 'ignore')) == len(s)
+
+
+def clean_str(s):
+    # Cleans a string by replacing special characters with underscore _
+    return re.sub(pattern="[|@#!¡·$€%&()=?¿^*;:,¨´><+]", repl="_", string=s)
