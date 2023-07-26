@@ -26,12 +26,12 @@ import torch
 import torch.nn as nn
 from torch.cuda import amp
 
-from yolo.utils.torch_util import smart_inference_mode, Profile
-from yolo.utils.util import check_requirements, copy_attr
-from yolo.utils.decorators import TryExcept
-from yolo.data.dataloaders import exif_transpose
-from yolo.data.augmentations import letterbox
-from yolo.utils.logger import LOGGER
+from ...utils.torchutil import smart_inference_mode
+from ...utils.util import check_requirements, copy_attr
+from ...utils.decorators import TryExcept, Profile
+from ...data.auxiliary import exif_transpose
+from ...data.augmentations import letterbox
+from ...utils.logger import LOGGER
 
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation

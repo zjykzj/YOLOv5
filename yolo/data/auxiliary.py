@@ -27,9 +27,9 @@ from PIL import ExifTags, Image, ImageOps
 from multiprocessing.pool import ThreadPool
 
 from .datasets.loadimagesandlabels import LoadImagesAndLabels
-from .. import DATASETS_DIR, HELP_URL, IMG_FORMATS, VID_FORMATS, PIN_MEMORY, ROOT, NUM_THREADS
+from .. import DATASETS_DIR, IMG_FORMATS, ROOT, NUM_THREADS
 from ..utils.fileutil import check_yaml, is_zipfile, download, yaml_load, unzip_file, check_font
-from ..utils.boxutil import xywh2xyxy, segment2box, segments2boxes
+from ..utils.boxutil import xywh2xyxy, segments2boxes
 from ..utils.misc import emojis, colorstr, is_ascii
 from ..utils.logger import LOGGER
 

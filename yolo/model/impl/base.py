@@ -17,8 +17,8 @@ import torch.nn as nn
 import math
 import matplotlib.pyplot as plt
 
-from yolo.utils.torch_util import time_sync
-from yolo.utils.logger import LOGGER
+from ...utils.torchutil import time_sync
+from ...utils.logger import LOGGER
 from .common import Conv, DWConv
 from .detect import Detect
 from .segment import Segment
@@ -104,9 +104,6 @@ def model_info(model, verbose=False, imgsz=640):
 
     name = Path(model.yaml_file).stem.replace('yolov5', 'YOLOv5') if hasattr(model, 'yaml_file') else 'Model'
     LOGGER.info(f"{name} summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}")
-
-
-
 
 
 class BaseModel(nn.Module):

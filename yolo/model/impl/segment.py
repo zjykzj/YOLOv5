@@ -9,8 +9,8 @@
 
 import torch.nn as nn
 
-from detect import Detect
-from common import Proto
+from .detect import Detect
+from .common import Proto
 
 
 class Segment(Detect):

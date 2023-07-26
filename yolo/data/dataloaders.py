@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, distributed
 
 from .datasets.loadimagesandlabels import LoadImagesAndLabels
 from .loaders.infinitedataloader import InfiniteDataLoader
-from ..utils.torch_util import torch_distributed_zero_first
+from ..utils.torchutil import torch_distributed_zero_first
 from ..utils.logger import LOGGER
 from .. import PIN_MEMORY, RANK
 
@@ -76,7 +76,7 @@ def create_dataloader(path,
 
 
 # Classification dataloaders -------------------------------------------------------------------------------------------
-from .datasets.classification_dataset import ClassificationDataset
+from .datasets.classificationdataset import ClassificationDataset
 
 
 def create_classification_dataloader(path,

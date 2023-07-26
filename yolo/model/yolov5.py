@@ -27,18 +27,18 @@ if str(ROOT) not in sys.path:
 if platform.system() != 'Windows':
     ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-from yolo.utils.logger import LOGGER
-from yolo.utils.misc import colorstr, print_args
-from yolo.utils.torch_util import select_device, profile
-from yolo.utils.file_util import check_yaml
+from ..utils.logger import LOGGER
+from ..utils.misc import colorstr, print_args, make_divisible
+from ..utils.torchutil import select_device, profile
+from ..utils.fileutil import check_yaml
 
-from impl.autoanchor import check_anchor_order
-from impl.base import BaseModel
-from impl.detect import Detect
-from impl.segment import Segment
-from impl.common import DetectMultiBackend, Classify, Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, \
+from .impl.autoanchor import check_anchor_order
+from .impl.base import BaseModel
+from .impl.detect import Detect
+from .impl.segment import Segment
+from .impl.common import DetectMultiBackend, Classify, Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, \
     Focus, CrossConv, BottleneckCSP, C3, C3TR, C3SPP, C3Ghost, DWConvTranspose2d, C3x, Concat, Contract, Expand
-from impl.experimental import MixConv2d
+from .impl.experimental import MixConv2d
 
 
 def initialize_weights(model):
@@ -63,13 +63,6 @@ def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
     if not same_shape:  # pad/crop img
         h, w = (math.ceil(x * ratio / gs) * gs for x in (h, w))
     return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean
-
-
-def make_divisible(x, divisor):
-    # Returns nearest x divisible by divisor
-    if isinstance(divisor, torch.Tensor):
-        divisor = int(divisor.max())  # to int
-    return math.ceil(x / divisor) * divisor
 
 
 class DetectionModel(BaseModel):
