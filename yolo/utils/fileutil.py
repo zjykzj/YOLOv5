@@ -13,9 +13,9 @@ import torch
 import urllib
 import sys
 import yaml
-import datetime
 import platform
 
+from datetime import datetime
 from pathlib import Path
 from itertools import repeat
 from multiprocessing.pool import ThreadPool
@@ -23,12 +23,7 @@ from zipfile import ZipFile, is_zipfile
 from tarfile import is_tarfile
 
 from .logger import LOGGER
-
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[1]  # YOLOv5 root directory
-RANK = int(os.getenv('RANK', -1))
-AUTOINSTALL = str(os.getenv('YOLOv5_AUTOINSTALL', True)).lower() == 'true'  # global auto-install mode
-FONT = 'Arial.ttf'  # httpyaml_loads://ultralytics.com/assets/Arial.ttf
+from .. import ROOT, FONT
 
 
 def get_latest_run(search_dir='.'):
@@ -70,7 +65,7 @@ def check_file(file, suffix=''):
     else:  # search
         files = []
         for d in 'data', 'models', 'utils':  # search directories
-            files.extend(glob.glob(str(ROOT / d / '**' / file), recursive=True))  # find file
+            files.extend(glob.glob(str(ROOT / 'configs' / d / '**' / file), recursive=True))  # find file
         assert len(files), f'File not found: {file}'  # assert file was found
         assert len(files) == 1, f"Multiple files match '{file}', specify exact path: {files}"  # assert unique
         return files[0]  # return file
@@ -107,10 +102,28 @@ def increment_path(path, exist_ok=False, sep='', mkdir=False):
     return path
 
 
+def file_age(path=__file__):
+    # Return days since last file update
+    dt = (datetime.now() - datetime.fromtimestamp(Path(path).stat().st_mtime))  # delta
+    return dt.days  # + dt.seconds / 86400  # fractional days
+
+
 def file_date(path=__file__):
     # Return human-readable file modification date, i.e. '2021-3-26'
     t = datetime.fromtimestamp(Path(path).stat().st_mtime)
     return f'{t.year}-{t.month}-{t.day}'
+
+
+def file_size(path):
+    # Return file/dir size (MB)
+    mb = 1 << 20  # bytes to MiB (1024 ** 2)
+    path = Path(path)
+    if path.is_file():
+        return path.stat().st_size / mb
+    elif path.is_dir():
+        return sum(f.stat().st_size for f in path.glob('**/*') if f.is_file()) / mb
+    else:
+        return 0.0
 
 
 def check_font(font=FONT, progress=False):

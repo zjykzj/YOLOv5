@@ -26,13 +26,17 @@ import torch
 import torch.nn as nn
 from torch.cuda import amp
 
+from ... import ROOT
+from ...utils.fileutil import yaml_load, check_suffix, increment_path
 from ...utils.torchutil import smart_inference_mode
-from ...utils.misc import copy_attr
-from ...utils.general import check_requirements
+from ...utils.boxutil import xywh2xyxy, scale_boxes, xyxy2xywh
+from ...utils.misc import copy_attr, make_divisible, is_notebook, colorstr
+from ...utils.general import check_requirements, non_max_suppression
 from ...utils.decorators import TryExcept, Profile
 from ...data.auxiliary import exif_transpose
 from ...data.augmentations import letterbox
 from ...utils.logger import LOGGER
+from ...utils.plots import Annotator, colors, save_one_box
 
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
@@ -490,7 +494,7 @@ class DetectMultiBackend(nn.Module):
         elif triton:  # NVIDIA Triton Inference Server
             LOGGER.info(f'Using {w} as Triton Inference Server...')
             check_requirements('tritonclient[all]')
-            from utils.triton import TritonRemoteModel
+            from ...utils.triton import TritonRemoteModel
             model = TritonRemoteModel(url=w)
             nhwc = model.runtime.startswith("tensorflow")
         else:
@@ -500,7 +504,7 @@ class DetectMultiBackend(nn.Module):
         if 'names' not in locals():
             names = yaml_load(data)['names'] if data else {i: f'class{i}' for i in range(999)}
         if names[0] == 'n01440764' and len(names) == 1000:  # ImageNet
-            names = yaml_load(ROOT / 'data/ImageNet.yaml')['names']  # human-readable names
+            names = yaml_load(ROOT / 'configs' / 'data/ImageNet.yaml')['names']  # human-readable names
 
         self.__dict__.update(locals())  # assign all variables to self
 
@@ -602,7 +606,7 @@ class DetectMultiBackend(nn.Module):
         # Return model type from model path, i.e. path='path/to/model.onnx' -> type=onnx
         # types = [pt, jit, onnx, xml, engine, coreml, saved_model, pb, tflite, edgetpu, tfjs, paddle]
         from export import export_formats
-        from utils.downloads import is_url
+        from ...utils.downloads import is_url
         sf = list(export_formats().Suffix)  # export suffixes
         if not is_url(p, check=False):
             check_suffix(p, sf)  # checks
