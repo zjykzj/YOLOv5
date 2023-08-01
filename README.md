@@ -15,13 +15,15 @@
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt=""></a>
 </p>
 
+The implementation of yolov5 for this warehouse is referenced from [v7.0 - YOLOv5 SOTA Realtime Instance Segmentation](https://github.com/ultralytics/yolov5/releases/tag/v7.0).
+
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
 - [Background](#background)
 - [Prepare Data](#prepare-data)
-  - [Pascal VOC](#pascal-voc)
-  - [COCO](#coco)
+    - [Pascal VOC](#pascal-voc)
+    - [COCO](#coco)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Maintainers](#maintainers)
@@ -31,39 +33,17 @@
 
 ## Background
 
-[ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides a perfect object detection implementation, including the advanced yolov5 model and loss function, as well as perfect logging and debugging functions. For beginners, training, testing, and deployment of object detection tasks can be completed through documentation, and even [ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides SOP for classification and segmentation tasks.
+[ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides a perfect object detection implementation,
+including the advanced yolov5 model and loss function, as well as perfect logging and debugging functions. For
+beginners, training, testing, and deployment of object detection tasks can be completed through documentation, and
+even [ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides SOP for classification and segmentation tasks.
 
-This repository aims to implement a simplified version of YOLOv5, simplifying the internal implementation of the original YOLOv5 repository as much as possible, and removing features and code that I currently do not need. For example, I will remove the implementation code for video files and cache files in the data module, and only retain the onnxruntime/opencv implementation in the deployment module, and so on.
+This repository aims to implement a simplified version of YOLOv5, simplifying the internal implementation of the
+original YOLOv5 repository as much as possible, and removing features and code that I currently do not need. For
+example, I will remove the implementation code for video files and cache files in the data module, and only retain the
+onnxruntime/opencv implementation in the deployment module, and so on.
 
-## Prepare Data
-
-### Pascal VOC
-
-Use this script [voc2yolov5.py](https://github.com/zjykzj/vocdev/blob/master/py/voc2yolov5.py)
-
-```shell
-python voc2yolov5.py -s /home/zj/data/voc -d /home/zj/data/voc/voc2yolov5-train -l trainval-2007 trainval-2012
-python voc2yolov5.py -s /home/zj/data/voc -d /home/zj/data/voc/voc2yolov5-val -l test-2007
-```
-
-Then softlink the folder where the dataset is located to the specified location:
-
-```shell
-ln -s /path/to/voc /path/to/YOLOv3/../datasets/voc
-```
-
-### COCO
-
-Use this script [get_coco.sh](https://github.com/ultralytics/yolov5/blob/master/data/scripts/get_coco.sh)
-
-
-## Installation
-
-...
-
-## Usage
-
-...
+**Note: The configuration of this warehouse is completely based on the original implementation of YOLOv5, divided into `data/hyps/models`**
 
 ## Maintainers
 
