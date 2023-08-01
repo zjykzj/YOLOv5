@@ -48,7 +48,7 @@ download: |
   import xml.etree.ElementTree as ET
 
   from tqdm import tqdm
-  from utils.general import download, Path
+  from yolo.utils.downloads import download, Path
 
 
   def convert_label(path, lb_path, year, image_id):
