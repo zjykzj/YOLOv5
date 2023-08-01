@@ -13,20 +13,98 @@ import glob
 import random
 import psutil
 import torch
+import hashlib
+import contextlib
 
 from tqdm import tqdm
 import numpy as np
+from PIL import ExifTags, Image, ImageOps
 from pathlib import Path
 from itertools import repeat
 from multiprocessing.pool import ThreadPool, Pool
 
 from torch.utils.data import Dataset
 
+from .. import img2label_paths
 from ..augmentations import Albumentations, random_perspective, augment_hsv, letterbox, mixup, xywhn2xyxy, copy_paste
-from ..auxiliary import verify_image_label, get_hash, img2label_paths
 from ... import LOCAL_RANK, TQDM_BAR_FORMAT, NUM_THREADS, HELP_URL, IMG_FORMATS
 from ...utils.logger import LOGGER
 from ...utils.boxutil import xyn2xy, xyxy2xywhn
+
+# Get orientation exif tag
+for orientation in ExifTags.TAGS.keys():
+    if ExifTags.TAGS[orientation] == 'Orientation':
+        break
+
+
+def exif_size(img):
+    # Returns exif-corrected PIL size
+    s = img.size  # (width, height)
+    with contextlib.suppress(Exception):
+        rotation = dict(img._getexif().items())[orientation]
+        if rotation in [6, 8]:  # rotation 270 or 90
+            s = (s[1], s[0])
+    return s
+
+
+def verify_image_label(args):
+    # Verify one image-label pair
+    im_file, lb_file, prefix = args
+    nm, nf, ne, nc, msg, segments = 0, 0, 0, 0, '', []  # number (missing, found, empty, corrupt), message, segments
+    try:
+        # verify images
+        im = Image.open(im_file)
+        im.verify()  # PIL verify
+        shape = exif_size(im)  # image size
+        assert (shape[0] > 9) & (shape[1] > 9), f'image size {shape} <10 pixels'
+        assert im.format.lower() in IMG_FORMATS, f'invalid image format {im.format}'
+        if im.format.lower() in ('jpg', 'jpeg'):
+            with open(im_file, 'rb') as f:
+                f.seek(-2, 2)
+                if f.read() != b'\xff\xd9':  # corrupt JPEG
+                    ImageOps.exif_transpose(Image.open(im_file)).save(im_file, 'JPEG', subsampling=0, quality=100)
+                    msg = f'{prefix}WARNING ⚠️ {im_file}: corrupt JPEG restored and saved'
+
+        # verify labels
+        if os.path.isfile(lb_file):
+            nf = 1  # label found
+            with open(lb_file) as f:
+                lb = [x.split() for x in f.read().strip().splitlines() if len(x)]
+                if any(len(x) > 6 for x in lb):  # is segment
+                    classes = np.array([x[0] for x in lb], dtype=np.float32)
+                    segments = [np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in lb]  # (cls, xy1...)
+                    lb = np.concatenate((classes.reshape(-1, 1), segments2boxes(segments)), 1)  # (cls, xywh)
+                lb = np.array(lb, dtype=np.float32)
+            nl = len(lb)
+            if nl:
+                assert lb.shape[1] == 5, f'labels require 5 columns, {lb.shape[1]} columns detected'
+                assert (lb >= 0).all(), f'negative label values {lb[lb < 0]}'
+                assert (lb[:, 1:] <= 1).all(), f'non-normalized or out of bounds coordinates {lb[:, 1:][lb[:, 1:] > 1]}'
+                _, i = np.unique(lb, axis=0, return_index=True)
+                if len(i) < nl:  # duplicate row check
+                    lb = lb[i]  # remove duplicates
+                    if segments:
+                        segments = [segments[x] for x in i]
+                    msg = f'{prefix}WARNING ⚠️ {im_file}: {nl - len(i)} duplicate labels removed'
+            else:
+                ne = 1  # label empty
+                lb = np.zeros((0, 5), dtype=np.float32)
+        else:
+            nm = 1  # label missing
+            lb = np.zeros((0, 5), dtype=np.float32)
+        return im_file, lb, shape, segments, nm, nf, ne, nc, msg
+    except Exception as e:
+        nc = 1
+        msg = f'{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image/label: {e}'
+        return [None, None, None, None, nm, nf, ne, nc, msg]
+
+
+def get_hash(paths):
+    # Returns a single hash value of a list of paths (files or dirs)
+    size = sum(os.path.getsize(p) for p in paths if os.path.exists(p))  # sizes
+    h = hashlib.md5(str(size).encode())  # hash sizes
+    h.update(''.join(paths).encode())  # hash paths
+    return h.hexdigest()  # return hash
 
 
 class LoadImagesAndLabels(Dataset):

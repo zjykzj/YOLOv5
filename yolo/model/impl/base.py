@@ -20,8 +20,7 @@ from ...utils.torchutil import time_sync
 from ...utils.logger import LOGGER
 
 from .common import Conv, DWConv
-from .detect import Detect
-from .segment import Segment
+from .detect import Detect, Segment
 
 try:
     import thop  # for FLOPs computation

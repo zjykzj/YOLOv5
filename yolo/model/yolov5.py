@@ -34,8 +34,7 @@ from ..utils.fileutil import check_yaml
 
 from .impl.autoanchor import check_anchor_order
 from .impl.base import BaseModel
-from .impl.detect import Detect
-from .impl.segment import Segment
+from .impl.detect import Detect, Segment
 from .impl.common import DetectMultiBackend, Classify, Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, \
     Focus, CrossConv, BottleneckCSP, C3, C3TR, C3SPP, C3Ghost, DWConvTranspose2d, C3x, Concat, Contract, Expand
 from .impl.experimental import MixConv2d
