@@ -20,16 +20,12 @@ from copy import deepcopy
 from pathlib import Path
 from subprocess import check_output
 
+from .. import ROOT
 from .misc import colorstr, emojis, make_divisible, is_writeable
 from .logger import LOGGER
 from .decorators import TryExcept
 from .boxutil import xywh2xyxy
 from .metrics import box_iou
-
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[1]  # YOLOv5 root directory
-RANK = int(os.getenv('RANK', -1))
-AUTOINSTALL = str(os.getenv('YOLOv5_AUTOINSTALL', True)).lower() == 'true'  # global auto-install mode
 
 
 def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=False, hard=False, verbose=False):
@@ -142,7 +138,8 @@ def check_amp(model):
     device = next(model.parameters()).device  # get model device
     if device.type in ('cpu', 'mps'):
         return False  # AMP only used on CUDA devices
-    f = ROOT / 'data' / 'images' / 'bus.jpg'  # image to check
+    # f = ROOT / 'data' / 'images' / 'bus.jpg'  # image to check
+    f = ROOT / 'assets' / 'coco' / 'bus.jpg'  # image to check
     im = f if f.exists() else 'https://ultralytics.com/images/bus.jpg' if check_online() else np.ones((640, 640, 3))
     try:
         assert amp_allclose(deepcopy(model), im) or amp_allclose(DetectMultiBackend('yolov5n.pt', device), im)
