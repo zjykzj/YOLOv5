@@ -27,7 +27,8 @@ import torch.nn as nn
 from torch.cuda import amp
 
 from ...utils.torchutil import smart_inference_mode
-from ...utils.util import check_requirements, copy_attr
+from ...utils.misc import copy_attr
+from ...utils.general import check_requirements
 from ...utils.decorators import TryExcept, Profile
 from ...data.auxiliary import exif_transpose
 from ...data.augmentations import letterbox

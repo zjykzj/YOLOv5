@@ -11,8 +11,9 @@ import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from .util import check_version
 from .. import LOCAL_RANK
+
+from .general import check_version
 
 
 def smart_DDP(model):

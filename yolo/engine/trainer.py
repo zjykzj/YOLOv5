@@ -17,9 +17,9 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 
-from yolo.model.autoanchor import TQDM_BAR_FORMAT
-from yolo.model import labels_to_image_weights
-from yolo.utils.logger import LOGGER
+from .. import TQDM_BAR_FORMAT
+from ..utils.logger import LOGGER
+from ..utils.general import labels_to_image_weights
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
@@ -36,6 +36,10 @@ def one_epoch_train(callbacks, model, opt, hyp, dataset, maps, nc, device, train
         cw = model.class_weights.cpu().numpy() * (1 - maps) ** 2 / nc  # class weights
         iw = labels_to_image_weights(dataset.labels, nc=nc, class_weights=cw)  # image weights
         dataset.indices = random.choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
+
+    # Update mosaic border (optional)
+    # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
+    # dataset.mosaic_border = [b - imgsz, -b]  # height, width borders
 
     mloss = torch.zeros(3, device=device)  # mean losses
     if RANK != -1:

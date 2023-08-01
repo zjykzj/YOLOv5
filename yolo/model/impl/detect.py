@@ -10,8 +10,9 @@
 import torch
 import torch.nn as nn
 
-from yolo.utils.util import check_version
-from segment import Segment
+from ...utils.general import check_version
+
+from .segment import Segment
 
 
 class Detect(nn.Module):
