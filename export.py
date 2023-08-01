@@ -161,7 +161,7 @@ def run(
         batch_size=1,  # batch size
         device='cpu',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         include=('torchscript', 'onnx'),  # include formats
-        half=False,  # FP16 half-precision export
+        half=False,  # FP16  half-precision export
         inplace=False,  # set YOLOv5 Detect() inplace=True
         optimize=False,  # TorchScript: optimize for mobile
         dynamic=False,  # ONNX/TF/TensorRT: dynamic axes
@@ -215,7 +215,7 @@ def run(
     if jit:  # TorchScript
         f[0], _ = export_torchscript(model, im, file, optimize)
     if onnx:  # OpenVINO requires ONNX
-        f[2], _ = export_onnx(model, im, file, opset, dynamic, simplify)
+        f[1], _ = export_onnx(model, im, file, opset, dynamic, simplify)
 
     # Finish
     f = [str(x) for x in f if x]  # filter out '' and None
