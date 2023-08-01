@@ -16,7 +16,9 @@ Tutorial:   https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data
 """
 
 import argparse
+import math
 import os
+import random
 import sys
 import time
 from copy import deepcopy
@@ -26,8 +28,10 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.distributed as dist
+import torch.nn as nn
 import yaml
 from torch.optim import lr_scheduler
+from tqdm import tqdm
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -35,47 +39,37 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-import val as validate  # for end-of-epoch mAP
-from yolo.data.auxiliary import check_dataset
+from yolo import TQDM_BAR_FORMAT
 from yolo.data.dataloaders import create_dataloader
+from yolo.data.auxiliary import check_dataset
 from yolo.model.yolov5 import Model
 from yolo.model.loss import ComputeLoss
 from yolo.model.impl.modelema import ModelEMA
 from yolo.model.impl.autoanchor import check_anchors
 from yolo.model.impl.experimental import attempt_load
 from yolo.engine.autobatch import check_train_batch_size
-from yolo.engine.resume import smart_resume
+from yolo.engine.callbacks import Callbacks
 from yolo.engine.earlystop import EarlyStopping
-from yolo.engine.trainer import one_epoch_train
+from yolo.engine.resume import smart_resume
 from yolo.optim.build import smart_optimizer, strip_optimizer
 from yolo.optim.onecycle import one_cycle
+from yolo.utils.ddputil import smart_DDP, de_parallel
+from yolo.utils.torchutil import select_device, torch_distributed_zero_first
+from yolo.utils.fileutil import check_file, check_yaml, yaml_save, get_latest_run, increment_path, check_suffix
+from yolo.utils.gitutil import check_git_info, check_git_status
+from yolo.utils.general import check_requirements, init_seeds, check_amp, check_img_size, labels_to_class_weights, \
+    labels_to_image_weights
+from yolo.utils.misc import print_args, colorstr, methods, intersect_dicts
+from yolo.utils.metrics import fitness
+from yolo.utils.downloads import is_url, attempt_download
 from yolo.utils.logger import LOGGER
 from yolo.utils.loggers import Loggers
-from yolo.utils.callbacks import Callbacks
-from yolo.utils.misc import colorstr, methods, intersect_dicts, print_args
-from yolo.utils.general import init_seeds, check_amp, check_img_size, check_requirements, labels_to_image_weights, \
-    labels_to_class_weights
-from yolo.utils.fileutil import yaml_save, check_suffix, check_file, check_yaml, increment_path, get_latest_run
-from yolo.utils.gitutil import check_git_info, check_git_status
-from yolo.utils.torchutil import torch_distributed_zero_first, select_device
-from yolo.utils.ddputil import smart_DDP, de_parallel
-from yolo.utils.downloads import attempt_download, is_url
-from yolo.utils.metrics import fitness
+import val as validate  # for end-of-epoch mAP
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 GIT_INFO = check_git_info()
-
-"""
-把数据的操作和模型的操作封装到各自的模块中，另外，把训练相关的trainer/evaler/resume/optimizer/lr_scheduler也封装到各自的实现中。
-
-关键代码：先实现整体训练实现，然后看情况进行拆分
-
-第一个目标，先让yolov5检测配置训练起来
-
-没必要一定要把模型的定义放到各自的模块中，关键是理解和运用
-"""
 
 
 def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictionary
@@ -270,8 +264,84 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
                 f"Logging results to {colorstr('bold', save_dir)}\n"
                 f'Starting training for {epochs} epochs...')
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
-        mloss = one_epoch_train(callbacks, model, opt, hyp, dataset, maps, nc, device, train_loader, epoch, nb, optimizer, nw,
-                        nbs, batch_size, imgsz, gs, amp, scaler, ema, epochs, compute_loss)
+        callbacks.run('on_train_epoch_start')
+        model.train()
+
+        # Update image weights (optional, single-GPU only)
+        if opt.image_weights:
+            cw = model.class_weights.cpu().numpy() * (1 - maps) ** 2 / nc  # class weights
+            iw = labels_to_image_weights(dataset.labels, nc=nc, class_weights=cw)  # image weights
+            dataset.indices = random.choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
+
+        # Update mosaic border (optional)
+        # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
+        # dataset.mosaic_border = [b - imgsz, -b]  # height, width borders
+
+        mloss = torch.zeros(3, device=device)  # mean losses
+        if RANK != -1:
+            train_loader.sampler.set_epoch(epoch)
+        pbar = enumerate(train_loader)
+        LOGGER.info(('\n' + '%11s' * 7) % ('Epoch', 'GPU_mem', 'box_loss', 'obj_loss', 'cls_loss', 'Instances', 'Size'))
+        if RANK in {-1, 0}:
+            pbar = tqdm(pbar, total=nb, bar_format=TQDM_BAR_FORMAT)  # progress bar
+        optimizer.zero_grad()
+        for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
+            callbacks.run('on_train_batch_start')
+            ni = i + nb * epoch  # number integrated batches (since train start)
+            imgs = imgs.to(device, non_blocking=True).float() / 255  # uint8 to float32, 0-255 to 0.0-1.0
+
+            # Warmup
+            if ni <= nw:
+                xi = [0, nw]  # x interp
+                # compute_loss.gr = np.interp(ni, xi, [0.0, 1.0])  # iou loss ratio (obj_loss = 1.0 or iou)
+                accumulate = max(1, np.interp(ni, xi, [1, nbs / batch_size]).round())
+                for j, x in enumerate(optimizer.param_groups):
+                    # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                    x['lr'] = np.interp(ni, xi, [hyp['warmup_bias_lr'] if j == 0 else 0.0, x['initial_lr'] * lf(epoch)])
+                    if 'momentum' in x:
+                        x['momentum'] = np.interp(ni, xi, [hyp['warmup_momentum'], hyp['momentum']])
+
+            # Multi-scale
+            if opt.multi_scale:
+                sz = random.randrange(imgsz * 0.5, imgsz * 1.5 + gs) // gs * gs  # size
+                sf = sz / max(imgs.shape[2:])  # scale factor
+                if sf != 1:
+                    ns = [math.ceil(x * sf / gs) * gs for x in imgs.shape[2:]]  # new shape (stretched to gs-multiple)
+                    imgs = nn.functional.interpolate(imgs, size=ns, mode='bilinear', align_corners=False)
+
+            # Forward
+            with torch.cuda.amp.autocast(amp):
+                pred = model(imgs)  # forward
+                loss, loss_items = compute_loss(pred, targets.to(device))  # loss scaled by batch_size
+                if RANK != -1:
+                    loss *= WORLD_SIZE  # gradient averaged between devices in DDP mode
+                if opt.quad:
+                    loss *= 4.
+
+            # Backward
+            scaler.scale(loss).backward()
+
+            # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
+            if ni - last_opt_step >= accumulate:
+                scaler.unscale_(optimizer)  # unscale gradients
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)  # clip gradients
+                scaler.step(optimizer)  # optimizer.step
+                scaler.update()
+                optimizer.zero_grad()
+                if ema:
+                    ema.update(model)
+                last_opt_step = ni
+
+            # Log
+            if RANK in {-1, 0}:
+                mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
+                mem = f'{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G'  # (GB)
+                pbar.set_description(('%11s' * 2 + '%11.4g' * 5) %
+                                     (f'{epoch}/{epochs - 1}', mem, *mloss, targets.shape[0], imgs.shape[-1]))
+                callbacks.run('on_train_batch_end', model, ni, imgs, targets, paths, list(mloss))
+                if callbacks.stop_training:
+                    return
+            # end batch ------------------------------------------------------------------------------------------------
 
         # Scheduler
         lr = [x['lr'] for x in optimizer.param_groups]  # for loggers

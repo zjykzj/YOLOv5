@@ -35,15 +35,20 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-from models.common import DetectMultiBackend
-from utils.callbacks import Callbacks
-from utils.dataloaders import create_dataloader
-from utils.general import (LOGGER, TQDM_BAR_FORMAT, Profile, check_dataset, check_img_size, check_requirements,
-                           check_yaml, coco80_to_coco91_class, colorstr, increment_path, non_max_suppression,
-                           print_args, scale_boxes, xywh2xyxy, xyxy2xywh)
-from utils.metrics import ConfusionMatrix, ap_per_class, box_iou
-from utils.plots import output_to_target, plot_images, plot_val_study
-from utils.torch_utils import select_device, smart_inference_mode
+from yolo import TQDM_BAR_FORMAT
+from yolo.model.yolov5 import DetectMultiBackend
+from yolo.data.auxiliary import check_dataset, coco80_to_coco91_class
+from yolo.data.dataloaders import create_dataloader
+from yolo.engine.callbacks import Callbacks
+from yolo.utils.decorators import Profile
+from yolo.utils.boxutil import xyxy2xywh, xywh2xyxy, scale_boxes
+from yolo.utils.metrics import box_iou, ConfusionMatrix, ap_per_class
+from yolo.utils.torchutil import smart_inference_mode, select_device
+from yolo.utils.fileutil import increment_path, check_yaml
+from yolo.utils.general import check_img_size, non_max_suppression, check_requirements
+from yolo.utils.logger import LOGGER
+from yolo.utils.misc import colorstr, print_args
+from yolo.utils.plots import plot_images, output_to_target, plot_val_study
 
 
 def save_one_txt(predn, save_conf, shape, file):
@@ -388,9 +393,8 @@ def main(opt):
                 run(**vars(opt), plots=False)
 
         elif opt.task == 'study':  # speed vs mAP benchmarks
+            # python val.py --task study --data coco.yaml --iou 0.7 --weights yolov5n.pt yolov5s.pt...
             for opt.weights in weights:
-                # python val.py --task study --data coco.yaml --iou 0.7 --weights yolov5n.pt yolov5s.pt...
-
                 f = f'study_{Path(opt.data).stem}_{Path(opt.weights).stem}.txt'  # filename to save to
                 x, y = list(range(256, 1536 + 128, 128)), []  # x axis (image sizes), y axis
                 for opt.imgsz in x:  # img-size
