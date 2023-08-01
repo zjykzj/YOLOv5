@@ -15,8 +15,6 @@
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt=""></a>
 </p>
 
-The implementation of yolov5 for this warehouse is referenced from [v7.0 - YOLOv5 SOTA Realtime Instance Segmentation](https://github.com/ultralytics/yolov5/releases/tag/v7.0).
-
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
@@ -43,7 +41,9 @@ original YOLOv5 repository as much as possible, and removing features and code t
 example, I will remove the implementation code for video files and cache files in the data module, and only retain the
 onnxruntime/opencv implementation in the deployment module, and so on.
 
-**Note: The configuration of this warehouse is completely based on the original implementation of YOLOv5, divided into `data/hyps/models`**
+**Note1: The implementation of yolov5 for this warehouse is referenced from [v7.0 - YOLOv5 SOTA Realtime Instance Segmentation](https://github.com/ultralytics/yolov5/releases/tag/v7.0).**
+
+**Note2: The configuration of this warehouse is completely based on the original implementation of YOLOv5, divided into `configs/data/*.yaml`, `configs/hyps/*.yaml`, `configs/models/*.yaml`.**
 
 ## Maintainers
 
