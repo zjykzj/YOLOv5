@@ -9,14 +9,6 @@ Usage - formats:
     $ python val.py --weights yolov5s.pt                 # PyTorch
                               yolov5s.torchscript        # TorchScript
                               yolov5s.onnx               # ONNX Runtime or OpenCV DNN with --dnn
-                              yolov5s_openvino_model     # OpenVINO
-                              yolov5s.engine             # TensorRT
-                              yolov5s.mlmodel            # CoreML (macOS-only)
-                              yolov5s_saved_model        # TensorFlow SavedModel
-                              yolov5s.pb                 # TensorFlow GraphDef
-                              yolov5s.tflite             # TensorFlow Lite
-                              yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
-                              yolov5s_paddle_model       # PaddlePaddle
 """
 
 import argparse
@@ -145,16 +137,13 @@ def run(
 
         # Load model
         model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
-        stride, pt, jit, engine = model.stride, model.pt, model.jit, model.engine
+        stride, pt, jit = model.stride, model.pt, model.jit
         imgsz = check_img_size(imgsz, s=stride)  # check image size
         half = model.fp16  # FP16 supported on limited backends with CUDA
-        if engine:
-            batch_size = model.batch_size
-        else:
-            device = model.device
-            if not (pt or jit):
-                batch_size = 1  # export.py models default to batch-size 1
-                LOGGER.info(f'Forcing --batch-size 1 square inference (1,3,{imgsz},{imgsz}) for non-PyTorch models')
+        device = model.device
+        if not (pt or jit):
+            batch_size = 1  # export.py models default to batch-size 1
+            LOGGER.info(f'Forcing --batch-size 1 square inference (1,3,{imgsz},{imgsz}) for non-PyTorch models')
 
         # Data
         data = check_dataset(data)  # check
@@ -343,7 +332,7 @@ def run(
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', type=str, default=ROOT / 'configs/data/coco128.yaml', help='dataset.yaml path')
+    parser.add_argument('--data', type=str, default=ROOT / 'configs' / 'data/coco128.yaml', help='dataset.yaml path')
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path(s)')
     parser.add_argument('--batch-size', type=int, default=32, help='batch size')
     parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=640, help='inference size (pixels)')
