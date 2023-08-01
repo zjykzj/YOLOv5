@@ -8,19 +8,15 @@
 """
 
 import re
-import os
 
 from pathlib import Path
 from subprocess import check_output
 
+from .. import ROOT
 from .logger import LOGGER
 from .misc import colorstr
 from .decorators import TryExcept, WorkingDirectory
 from .general import check_requirements
-
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[1]  # YOLOv5 root directory
-RANK = int(os.getenv('RANK', -1))
 
 
 def check_online():

@@ -30,7 +30,6 @@ from .decorators import threaded, TryExcept
 from .metrics import fitness
 
 # Settings
-RANK = int(os.getenv('RANK', -1))
 matplotlib.rc('font', **{'size': 11})
 matplotlib.use('Agg')  # for writing to files only
 
