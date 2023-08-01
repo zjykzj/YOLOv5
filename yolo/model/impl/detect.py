@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 
 from ...utils.general import check_version
-
 from .common import Proto
 
 

@@ -7,7 +7,6 @@ Usage:
 """
 
 import math
-import argparse
 import contextlib
 
 import torch
@@ -17,11 +16,8 @@ import torchvision.transforms.functional as F
 from copy import deepcopy
 from pathlib import Path
 
-from .. import ROOT
 from ..utils.logger import LOGGER
-from ..utils.misc import colorstr, print_args, make_divisible
-from ..utils.torchutil import select_device, profile
-from ..utils.fileutil import check_yaml
+from ..utils.misc import colorstr, make_divisible
 
 from .impl.autoanchor import check_anchor_order
 from .impl.base import BaseModel

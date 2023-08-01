@@ -26,9 +26,11 @@ from multiprocessing.pool import ThreadPool
 
 from . import img2label_paths
 from .datasets.loadimagesandlabels import LoadImagesAndLabels
+
 from .. import DATASETS_DIR, IMG_FORMATS, ROOT, NUM_THREADS
-from ..utils.fileutil import check_yaml, is_zipfile, download, yaml_load, unzip_file, check_font
-from ..utils.boxutil import xywh2xyxy, segments2boxes
+from ..utils.fileutil import check_yaml, is_zipfile, yaml_load, unzip_file, check_font
+from ..utils.boxutil import xywh2xyxy
+from ..utils.downloads import download
 from ..utils.misc import emojis, colorstr, is_ascii
 from ..utils.logger import LOGGER
 

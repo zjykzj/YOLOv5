@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 
 from ...utils.torchutil import time_sync
 from ...utils.logger import LOGGER
-
 from .common import Conv, DWConv
 from .detect import Detect, Segment
 

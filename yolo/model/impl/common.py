@@ -3,14 +3,9 @@
 Common modules
 """
 
-import ast
-import contextlib
 import json
 import math
-import platform
 import warnings
-import zipfile
-from collections import OrderedDict, namedtuple
 from copy import copy
 from pathlib import Path
 from urllib.parse import urlparse

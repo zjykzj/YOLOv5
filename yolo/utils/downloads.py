@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from zipfile import is_zipfile
 from tarfile import is_tarfile
+from itertools import repeat
 from multiprocessing.pool import ThreadPool
 
 import torch

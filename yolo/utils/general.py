@@ -20,12 +20,14 @@ from copy import deepcopy
 from pathlib import Path
 from subprocess import check_output
 
-from .. import ROOT
 from .misc import colorstr, emojis, make_divisible, is_writeable
 from .logger import LOGGER
 from .decorators import TryExcept
 from .boxutil import xywh2xyxy
 from .metrics import box_iou
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[2]  # YOLOv5 root directory
 
 
 def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=False, hard=False, verbose=False):

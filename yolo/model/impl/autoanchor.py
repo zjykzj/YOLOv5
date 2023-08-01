@@ -10,13 +10,12 @@ import torch
 import yaml
 from tqdm import tqdm
 
+from ... import TQDM_BAR_FORMAT
 from ...utils.decorators import TryExcept
 from ...utils.logger import LOGGER
 from ...utils.misc import colorstr
 
 PREFIX = colorstr('AutoAnchor: ')
-
-TQDM_BAR_FORMAT = '{l_bar}{bar:10}| {n_fmt}/{total_fmt} {elapsed}'  # tqdm bar format
 
 
 def check_anchor_order(m):
