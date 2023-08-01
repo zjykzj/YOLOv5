@@ -408,3 +408,31 @@ def coco80_to_coco91_class():  # converts 80-index (val2014) to 91-index (paper)
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34,
         35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
         64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
+
+
+def scale_image(im1_shape, masks, im0_shape, ratio_pad=None):
+    """
+    img1_shape: model input shape, [h, w]
+    img0_shape: origin pic shape, [h, w, 3]
+    masks: [h, w, num]
+    """
+    # Rescale coordinates (xyxy) from im1_shape to im0_shape
+    if ratio_pad is None:  # calculate from im0_shape
+        gain = min(im1_shape[0] / im0_shape[0], im1_shape[1] / im0_shape[1])  # gain  = old / new
+        pad = (im1_shape[1] - im0_shape[1] * gain) / 2, (im1_shape[0] - im0_shape[0] * gain) / 2  # wh padding
+    else:
+        pad = ratio_pad[1]
+    top, left = int(pad[1]), int(pad[0])  # y, x
+    bottom, right = int(im1_shape[0] - pad[1]), int(im1_shape[1] - pad[0])
+
+    if len(masks.shape) < 2:
+        raise ValueError(f'"len of masks shape" should be 2 or 3, but got {len(masks.shape)}')
+    masks = masks[top:bottom, left:right]
+    # masks = masks.permute(2, 0, 1).contiguous()
+    # masks = F.interpolate(masks[None], im0_shape[:2], mode='bilinear', align_corners=False)[0]
+    # masks = masks.permute(1, 2, 0).contiguous()
+    masks = cv2.resize(masks, (im0_shape[1], im0_shape[0]))
+
+    if len(masks.shape) == 2:
+        masks = masks[:, :, None]
+    return masks

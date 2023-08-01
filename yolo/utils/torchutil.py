@@ -7,6 +7,7 @@
 @description: 
 """
 
+import os
 import thop
 import time
 import platform
@@ -17,12 +18,10 @@ from contextlib import contextmanager
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.parallel import DistributedDataParallel as DDP
 
-from .util import check_version
-from .git_util import git_describe
-from .file_util import file_date
+from .general import check_version
+from .gitutil import git_describe
+from .fileutil import file_date
 from .logger import LOGGER
 
 

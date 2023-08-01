@@ -10,7 +10,7 @@ import torch
 
 from yolo.utils.logger import LOGGER
 from yolo.utils.misc import colorstr
-from yolo.utils.torch_util import profile
+from yolo.utils.torchutil import profile
 
 
 def check_train_batch_size(model, imgsz=640, amp=True):

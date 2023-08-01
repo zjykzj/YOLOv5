@@ -10,7 +10,7 @@
 import numpy as np
 
 from ..augmentations import letterbox
-from ...utils.util import check_requirements
+from ...utils.general import check_requirements
 
 
 class LoadScreenshots:

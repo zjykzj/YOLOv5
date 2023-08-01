@@ -19,11 +19,15 @@ import seaborn as sn
 import torch
 from PIL import Image, ImageDraw, ImageFont
 
-from utils import TryExcept, threaded
-from utils.general import (CONFIG_DIR, FONT, LOGGER, check_font, check_requirements, clip_boxes, increment_path,
-                           is_ascii, xywh2xyxy, xyxy2xywh)
-from utils.metrics import fitness
-from utils.segment.general import scale_image
+from .. import FONT
+from ..data.auxiliary import scale_image
+from .fileutil import check_font, increment_path
+from .boxutil import xyxy2xywh, xywh2xyxy, clip_boxes
+from .general import CONFIG_DIR, check_requirements
+from .misc import is_ascii
+from .logger import LOGGER
+from .decorators import threaded, TryExcept
+from .metrics import fitness
 
 # Settings
 RANK = int(os.getenv('RANK', -1))
@@ -446,7 +450,7 @@ def plot_labels(labels, names=(), save_dir=Path('')):
 
 def imshow_cls(im, labels=None, pred=None, names=None, nmax=25, verbose=False, f=Path('images.jpg')):
     # Show classification image grid with labels (optional) and predictions (optional)
-    from utils.augmentations import denormalize
+    from ..data.augmentations import denormalize
 
     names = names or [f'class{i}' for i in range(1000)]
     blocks = torch.chunk(denormalize(im.clone()).cpu().float(), len(im),

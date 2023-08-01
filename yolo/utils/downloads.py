@@ -16,7 +16,7 @@ from multiprocessing.pool import ThreadPool
 
 import torch
 
-from logger import LOGGER
+from .logger import LOGGER
 
 
 def is_url(url, check=True):

@@ -13,7 +13,7 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 
 from ..utils.logger import LOGGER
-from ..utils.util import check_version
+from ..utils.general import check_version
 from ..utils.misc import colorstr
 from ..utils.metrics import bbox_ioa
 from ..utils.boxutil import resample_segments, segment2box, xywhn2xyxy

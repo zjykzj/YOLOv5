@@ -20,7 +20,7 @@ from threading import Thread
 from ..augmentations import letterbox
 from ...utils.logger import LOGGER
 from ...utils.misc import clean_str, is_colab, is_kaggle
-from ...utils.util import check_requirements
+from ...utils.general import check_requirements
 
 
 class LoadStreams:

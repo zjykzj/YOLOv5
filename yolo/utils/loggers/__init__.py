@@ -14,9 +14,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 from ..logger import LOGGER
 from ..misc import colorstr
-from .wandb.wandb_utils import WandbLogger
 from ..plots import plot_images, plot_labels, plot_results
-from ..torchutil import de_parallel
+from ..ddputil import de_parallel
+from .wandb.wandb_utils import WandbLogger
 
 LOGGERS = ('csv', 'tb', 'wandb', 'clearml', 'comet')  # *.csv, TensorBoard, Weights & Biases, ClearML
 RANK = int(os.getenv('RANK', -1))

@@ -10,6 +10,8 @@
 import os
 import platform
 import torch
+import torchvision
+import time
 import random
 
 import numpy as np
@@ -18,9 +20,11 @@ from copy import deepcopy
 from pathlib import Path
 from subprocess import check_output
 
-from .misc import colorstr, emojis, make_divisible
+from .misc import colorstr, emojis, make_divisible, is_writeable
 from .logger import LOGGER
 from .decorators import TryExcept
+from .boxutil import xywh2xyxy
+from .metrics import box_iou
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
@@ -292,3 +296,19 @@ def non_max_suppression(
             break  # time limit exceeded
 
     return output
+
+
+def user_config_dir(dir='Ultralytics', env_var='YOLOV5_CONFIG_DIR'):
+    # Return path of user configuration directory. Prefer environment variable if exists. Make dir if required.
+    env = os.getenv(env_var)
+    if env:
+        path = Path(env)  # use environment variable
+    else:
+        cfg = {'Windows': 'AppData/Roaming', 'Linux': '.config', 'Darwin': 'Library/Application Support'}  # 3 OS dirs
+        path = Path.home() / cfg.get(platform.system(), '')  # OS-specific config dir
+        path = (path if is_writeable(path) else Path('/tmp')) / dir  # GCP and AWS lambda fix, only /tmp is writeable
+    path.mkdir(exist_ok=True)  # make if required
+    return path
+
+
+CONFIG_DIR = user_config_dir()  # Ultralytics settings dir

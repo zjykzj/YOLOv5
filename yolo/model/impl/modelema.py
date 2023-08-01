@@ -11,7 +11,7 @@ import math
 
 from copy import deepcopy
 
-from ...utils.torchutil import de_parallel
+from ...utils.ddputil import de_parallel
 from ...utils.misc import copy_attr
 
 
