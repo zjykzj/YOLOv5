@@ -19,11 +19,6 @@
 
 - [Table of Contents](#table-of-contents)
 - [Background](#background)
-- [Prepare Data](#prepare-data)
-    - [Pascal VOC](#pascal-voc)
-    - [COCO](#coco)
-- [Installation](#installation)
-- [Usage](#usage)
 - [Maintainers](#maintainers)
 - [Thanks](#thanks)
 - [Contributing](#contributing)
