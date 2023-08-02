@@ -13,7 +13,8 @@ from copy import deepcopy
 
 import torch
 
-from yolo.model.yolov5 import Model, ROOT
+from yolo import ROOT
+from yolo.model.yolov5 import Model
 from yolo.utils.fileutil import check_yaml
 from yolo.utils.misc import print_args
 from yolo.utils.torchutil import select_device, profile

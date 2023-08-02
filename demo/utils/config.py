@@ -22,3 +22,8 @@ if __name__ == '__main__':
 
     dataset_dir = ROOT.parent / 'datasets'
     print(dataset_dir)
+
+    # ROOT = Path(os.path.relpath(ROOT, Path.cwd()))
+    print('ROOT:', ROOT)
+    DATASETS_DIR = Path(os.getenv('YOLOv5_DATASETS_DIR', ROOT.parent / 'datasets'))  # global datasets directory
+    print('DATASETS_DIR:', DATASETS_DIR)
