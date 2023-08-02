@@ -31,7 +31,7 @@ from .. import DATASETS_DIR, IMG_FORMATS, ROOT, NUM_THREADS
 from ..utils.fileutil import check_yaml, is_zipfile, yaml_load, unzip_file, check_font
 from ..utils.boxutil import xywh2xyxy
 from ..utils.downloads import download
-from ..utils.misc import emojis, colorstr, is_ascii
+from ..utils.misc import emojis, colorstr, is_ascii, is_notebook, is_docker
 from ..utils.logger import LOGGER
 
 
@@ -356,3 +356,19 @@ def scale_image(im1_shape, masks, im0_shape, ratio_pad=None):
     if len(masks.shape) == 2:
         masks = masks[:, :, None]
     return masks
+
+
+def check_imshow(warn=False):
+    # Check if environment supports image displays
+    try:
+        assert not is_notebook()
+        assert not is_docker()
+        cv2.imshow('test', np.zeros((1, 1, 3)))
+        cv2.waitKey(1)
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+        return True
+    except Exception as e:
+        if warn:
+            LOGGER.warning(f'WARNING ⚠️ Environment does not support cv2.imshow() or PIL Image.show()\n{e}')
+        return False
