@@ -29,7 +29,7 @@ from .. import img2label_paths
 from ..augmentations import Albumentations, random_perspective, augment_hsv, letterbox, mixup, xywhn2xyxy, copy_paste
 from ... import LOCAL_RANK, TQDM_BAR_FORMAT, NUM_THREADS, HELP_URL, IMG_FORMATS
 from ...utils.logger import LOGGER
-from ...utils.boxutil import xyn2xy, xyxy2xywhn
+from ...utils.boxutil import xyn2xy, xyxy2xywhn, segments2boxes
 
 # Get orientation exif tag
 for orientation in ExifTags.TAGS.keys():
