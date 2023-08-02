@@ -6,8 +6,19 @@ Loss functions
 import torch
 import torch.nn as nn
 
+from ..utils.general import check_version
+from ..utils.logger import LOGGER
 from ..utils.metrics import bbox_iou
 from ..utils.ddputil import de_parallel
+
+
+def smartCrossEntropyLoss(label_smoothing=0.0):
+    # Returns nn.CrossEntropyLoss with label smoothing enabled for torch>=1.10.0
+    if check_version(torch.__version__, '1.10.0'):
+        return nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+    if label_smoothing > 0:
+        LOGGER.warning(f'WARNING ⚠️ label smoothing {label_smoothing} requires torch>=1.10.0')
+    return nn.CrossEntropyLoss()
 
 
 def smooth_BCE(eps=0.1):  # https://github.com/ultralytics/yolov3/issues/238#issuecomment-598028441

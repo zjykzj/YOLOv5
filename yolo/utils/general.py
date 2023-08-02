@@ -20,6 +20,7 @@ from copy import deepcopy
 from pathlib import Path
 from subprocess import check_output
 
+from yolo import AUTOINSTALL
 from .misc import colorstr, emojis, make_divisible, is_writeable
 from .logger import LOGGER
 from .decorators import TryExcept
