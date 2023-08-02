@@ -53,7 +53,7 @@ from yolo.utils.misc import colorstr, print_args
 from yolo.utils.downloads import download
 from yolo.utils.fileutil import increment_path, yaml_save
 from yolo.utils.torchutil import select_device, torch_distributed_zero_first, reshape_classifier_output
-from yolo.utils.ddputil import smart_DDP
+from yolo.utils.ddputil import smart_DDP, de_parallel
 from yolo.utils.decorators import WorkingDirectory
 from yolo.utils.plots import imshow_cls
 
@@ -270,7 +270,7 @@ def train(opt, device):
         # Plot examples
         images, labels = (x[:25] for x in next(iter(testloader)))  # first 25 images and labels
         pred = torch.max(ema.ema(images.to(device)), 1)[1]
-        file = imshow_cls(images, labels, pred, model.names, verbose=False, f=save_dir / 'test_images.jpg')
+        file = imshow_cls(images, labels, pred, de_parallel(model).names, verbose=False, f=save_dir / 'test_images.jpg')
 
         # Log results
         meta = {"epochs": epochs, "top1_acc": best_fitness, "date": datetime.now().isoformat()}
