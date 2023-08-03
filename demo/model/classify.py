@@ -7,56 +7,43 @@
 @description: 
 """
 
-import os
 import torch
+import argparse
 
-from copy import deepcopy
 from pathlib import Path
 
-from yolo import RANK, LOCAL_RANK, DATASETS_DIR
-from yolo.data.dataloaders import create_classification_dataloader
-from yolo.model.yolov5 import Model, ClassificationModel
+from yolo import ROOT
+from yolo.model.yolov5 import Model, ClassificationModel, DetectionModel
+from yolo.utils.fileutil import check_yaml
+from yolo.utils.torchutil import select_device
+from yolo.utils.misc import print_args
+from yolo.utils.torchutil import profile
+from yolo.utils.logger import LOGGER
 
 if __name__ == '__main__':
-    cfg = 'configs/models/yolov5s.yaml'
-    model = Model(cfg)
-    print(model)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
+    parser.add_argument('--cutoff', type=int, default=None, help='Model layer cutoff index for Classify() head')
+    parser.add_argument('--batch-size', type=int, default=1, help='total batch size for all GPUs')
+    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--profile', action='store_true', help='profile model speed')
+    parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
+    opt = parser.parse_args()
+    opt.cfg = check_yaml(opt.cfg)  # check YAML
+    print_args(vars(opt))
+    device = select_device(opt.device)
 
-    model = ClassificationModel(model=model, nc=1000, cutoff=10)
-    print(model)
+    # Create model
+    im = torch.rand(opt.batch_size, 3, 640, 640).to(device)
+    model = Model(opt.cfg).to(device)
+    if isinstance(model, DetectionModel):
+        LOGGER.warning("WARNING ⚠️ pass YOLOv5 classifier model with '-cls' suffix, i.e. '--model yolov5s-cls.pt'")
+        model = ClassificationModel(model=model, nc=1000, cutoff=opt.cutoff or 10)  # convert to classification model
+    assert isinstance(model, ClassificationModel)
 
-    # Dataloaders
-    data = Path('imagenet')
-    data_dir = data if data.is_dir() else (DATASETS_DIR / data)
-    print("data_dir", data_dir)
-    imgsz = 224
-    bs = 64
-    nw = min(os.cpu_count() - 1, 8)
-    WORLD_SIZE = 1
-    nc = len([x for x in (data_dir / 'train').glob('*') if x.is_dir()])  # number of classes
-    trainloader = create_classification_dataloader(path=data_dir / 'train',
-                                                   imgsz=imgsz,
-                                                   batch_size=bs // WORLD_SIZE,
-                                                   augment=True,
-                                                   cache=False,
-                                                   rank=LOCAL_RANK,
-                                                   workers=nw)
-    test_dir = data_dir / 'test' if (data_dir / 'test').exists() else data_dir / 'val'  # data/test or data/val
-    if RANK in {-1, 0}:
-        testloader = create_classification_dataloader(path=test_dir,
-                                                      imgsz=imgsz,
-                                                      batch_size=bs // WORLD_SIZE * 2,
-                                                      augment=False,
-                                                      cache=False,
-                                                      rank=-1,
-                                                      workers=nw)
+    # Options
+    if opt.profile:  # profile forward-backward
+        results = profile(input=im, ops=[model], n=3)
 
-    model.names = trainloader.dataset.classes  # attach class names
-    model.transforms = testloader.dataset.torch_transforms  # attach inference transforms
-
-    ckpt = {
-        'model': deepcopy(model).half(),  # deepcopy(de_parallel(model)).half(),
-    }
-
-    # Save last, best and delete
-    torch.save(ckpt, "tmp-cls.pt")
+    else:  # report fused model summary
+        model.fuse()
