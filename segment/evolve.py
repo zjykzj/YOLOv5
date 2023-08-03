@@ -1,14 +1,14 @@
 # YOLOv5 🚀 by Ultralytics, GPL-3.0 license
 """
-Train a YOLOv5 model on a custom dataset.
+Train a YOLOv5 segment model on a segment dataset
 Models and datasets download automatically from the latest YOLOv5 release.
 
 Usage - Single-GPU training:
-    $ python train.py --data coco128.yaml --weights yolov5s.pt --img 640  # from pretrained (recommended)
-    $ python train.py --data coco128.yaml --weights '' --cfg yolov5s.yaml --img 640  # from scratch
+    $ python segment/train.py --data coco128-seg.yaml --weights yolov5s-seg.pt --img 640  # from pretrained (recommended)
+    $ python segment/train.py --data coco128-seg.yaml --weights '' --cfg yolov5s-seg.yaml --img 640  # from scratch
 
 Usage - Multi-GPU DDP training:
-    $ python -m torch.distributed.run --nproc_per_node 4 --master_port 1 train.py --data coco128.yaml --weights yolov5s.pt --img 640 --device 0,1,2,3
+    $ python -m torch.distributed.run --nproc_per_node 4 --master_port 1 segment/train.py --data coco128-seg.yaml --weights yolov5s-seg.pt --img 640 --device 0,1,2,3
 
 Models:     https://github.com/ultralytics/yolov5/tree/master/models
 Datasets:   https://github.com/ultralytics/yolov5/tree/master/data
@@ -28,23 +28,24 @@ import torch.distributed as dist
 import yaml
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # YOLOv5 root directory
+ROOT = FILE.parents[1]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-from yolo.engine.callbacks import Callbacks
+from yolo.utils.gitutil import check_git_info, check_git_status
 from yolo.utils.general import check_requirements
-from yolo.utils.misc import colorstr, print_args, print_mutation
-from yolo.utils.gitutil import check_git_status, check_git_info
+from yolo.utils.misc import print_args, print_mutation, colorstr
+from yolo.utils.fileutil import check_file, get_latest_run, check_yaml, increment_path
 from yolo.utils.torchutil import select_device
-from yolo.utils.fileutil import increment_path, check_yaml, check_file, get_latest_run
-from yolo.utils.plots import plot_evolve
-from yolo.utils.metrics import fitness
-from yolo.utils.logger import LOGGER
 from yolo.utils.downloads import is_url
+from yolo.utils.logger import LOGGER
+from yolo.utils.plots import plot_evolve
+from yolo.engine.callbacks import Callbacks
 
-from train import train, parse_opt
+from yolo.utils.segment.metrics import KEYS, fitness
+
+from train import parse_opt, train
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
@@ -59,8 +60,8 @@ def main(opt, callbacks=Callbacks()):
         check_git_status()
         check_requirements()
 
-    # Resume (from specified or most recent last.pt)
-    if opt.resume and not opt.evolve:
+    # Resume
+    if opt.resume and not opt.evolve:  # resume from specified or most recent last.pt
         last = Path(check_file(opt.resume) if isinstance(opt.resume, str) else get_latest_run())
         opt_yaml = last.parent.parent / 'opt.yaml'  # train options yaml
         opt_data = opt.data  # original dataset
@@ -184,9 +185,7 @@ def main(opt, callbacks=Callbacks()):
             results = train(hyp.copy(), opt, device, callbacks)
             callbacks = Callbacks()
             # Write mutation results
-            keys = ('metrics/precision', 'metrics/recall', 'metrics/mAP_0.5', 'metrics/mAP_0.5:0.95', 'val/box_loss',
-                    'val/obj_loss', 'val/cls_loss')
-            print_mutation(keys, results, hyp.copy(), save_dir, opt.bucket)
+            print_mutation(KEYS, results, hyp.copy(), save_dir, opt.bucket)
 
         # Plot results
         plot_evolve(evolve_csv)
