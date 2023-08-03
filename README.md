@@ -4,7 +4,7 @@
   <a title="Chinese" href="./README.zh-CN.md">🇨🇳</a>
 </div>
 
-<div align="center"><a title="" href="https://github.com/zjykzj/YOLOv5"><img align="center" src="./imgs/YOLOv5.png" alt=""></a></div>
+<div align="center"><a title="" href="https://github.com/zjykzj/YOLOv5"><img align="center" src="./assets/logo/YOLOv5.png" alt=""></a></div>
 
 <p align="center">
   «YOLOv5» implements a tiny version of the original <a href="https://github.com/ultralytics/yolov5">ultralytics/yolov5</a>
@@ -14,6 +14,12 @@
   <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg" alt=""></a>
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt=""></a>
 </p>
+
+```shell
+python -m torch.distributed.run --nproc_per_node 4 --master_port 36232 train.py  --data VOC.yaml --weights "" --cfg yolov5s.yaml --img 640 --device 0,1,2,3
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 619/619 10:31                                                                                           
+                   all       4952      12032      0.728      0.683      0.738      0.468 
+```
 
 ## Table of Contents
 
@@ -26,10 +32,7 @@
 
 ## Background
 
-[ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides a perfect object detection implementation,
-including the advanced yolov5 model and loss function, as well as perfect logging and debugging functions. For
-beginners, training, testing, and deployment of object detection tasks can be completed through documentation, and
-even [ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides SOP for classification and segmentation tasks.
+[ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides a perfect object detection implementation, including the advanced yolov5 model and loss function, as well as perfect logging and debugging functions. For beginners, training, testing, and deployment of object detection tasks can be completed through documentation, and even [ultralytics/yolov5](https://github.com/ultralytics/yolov5) provides SOP for classification and segmentation tasks.
 
 This repository aims to implement a simplified version of YOLOv5, simplifying the internal implementation of the
 original YOLOv5 repository as much as possible, and removing features and code that I currently do not need. For
