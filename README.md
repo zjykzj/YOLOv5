@@ -15,16 +15,14 @@
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt=""></a>
 </p>
 
-```shell
-python -m torch.distributed.run --nproc_per_node 4 --master_port 36232 train.py  --data VOC.yaml --weights "" --cfg yolov5s.yaml --img 640 --device 0,1,2,3
-                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 619/619 10:31                                                                                           
-                   all       4952      12032      0.728      0.683      0.738      0.468 
-```
-
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
 - [Background](#background)
+- [Usage](#usage)
+  - [Train](#train)
+  - [Eval](#eval)
+  - [Predict](#predict)
 - [Maintainers](#maintainers)
 - [Thanks](#thanks)
 - [Contributing](#contributing)
@@ -42,6 +40,28 @@ onnxruntime/opencv implementation in the deployment module, and so on.
 **Note1: The implementation of yolov5 for this warehouse is referenced from [v7.0 - YOLOv5 SOTA Realtime Instance Segmentation](https://github.com/ultralytics/yolov5/releases/tag/v7.0).**
 
 **Note2: The configuration of this warehouse is completely based on the original implementation of YOLOv5, divided into `configs/data/*.yaml`, `configs/hyps/*.yaml`, `configs/models/*.yaml`.**
+
+## Usage
+
+### Train
+
+```shell
+python -m torch.distributed.run --nproc_per_node 4 --master_port 53122 train.py --data coco.yaml --weights "" --cfg yolov5s.yaml --img 640 --device 0,1,2,3
+```
+
+### Eval
+
+```shell
+python val.py --weights runs/train/exp10/weights/best.pt --data coco.yaml --img 640
+```
+
+### Predict
+
+```shell
+python detect.py --weights runs/train/exp10/weights/best.pt --source assets/coco/
+```
+
+<p align="left"><img src="assets/results/coco/bus.jpg" height="240"\>  <img src="assets/results/coco/zidane.jpg" height="240"\></p>
 
 ## Maintainers
 
