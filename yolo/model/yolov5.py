@@ -11,12 +11,12 @@ import contextlib
 
 import torch
 import torch.nn as nn
-import torchvision.transforms.functional as F
 
 from copy import deepcopy
 from pathlib import Path
 
 from ..utils.logger import LOGGER
+from ..data.auxiliary import scale_img
 from ..utils.misc import colorstr, make_divisible
 
 from .impl.autoanchor import check_anchor_order
@@ -39,22 +39,11 @@ def initialize_weights(model):
             m.inplace = True
 
 
-def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
-    # Scales img(bs,3,y,x) by ratio constrained to gs-multiple
-    if ratio == 1.0:
-        return img
-    h, w = img.shape[2:]
-    s = (int(h * ratio), int(w * ratio))  # new size
-    img = F.interpolate(img, size=s, mode='bilinear', align_corners=False)  # resize
-    if not same_shape:  # pad/crop img
-        h, w = (math.ceil(x * ratio / gs) * gs for x in (h, w))
-    return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean
-
-
 class DetectionModel(BaseModel):
     # YOLOv5 detection model
     def __init__(self, cfg='yolov5s.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
         super().__init__()
+        # 加载配置文件
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
         else:  # is *.yaml
@@ -63,6 +52,7 @@ class DetectionModel(BaseModel):
             with open(cfg, encoding='ascii', errors='ignore') as f:
                 self.yaml = yaml.safe_load(f)  # model dict
 
+        # 确定输入通道ch、输出类别数nc，创建新模型
         # Define model
         ch = self.yaml['ch'] = self.yaml.get('ch', ch)  # input channels
         if nc and nc != self.yaml['nc']:
@@ -83,6 +73,7 @@ class DetectionModel(BaseModel):
             forward = lambda x: self.forward(x)[0] if isinstance(m, Segment) else self.forward(x)
             m.stride = torch.tensor([s / x.shape[-2] for x in forward(torch.zeros(1, ch, s, s))])  # forward
             check_anchor_order(m)
+            # 缩放锚点大小，匹配最大缩放步长
             m.anchors /= m.stride.view(-1, 1, 1)
             self.stride = m.stride
             self._initialize_biases()  # only run once
@@ -192,31 +183,49 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
     if act:
         Conv.default_act = eval(act)  # redefine default activation, i.e. Conv.default_act = nn.SiLU()
         LOGGER.info(f"{colorstr('activation:')} {act}")  # print
+    # 每个输出特征层对应的锚点个数
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
+    # 每个输出特征层的输出通道数，比如: 3 * (80 + 5) = 255
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
 
+    # layers：保存每层网络
+    # save：
+    # c2：输出通道数
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
+    # i：层下标
+    # f：输入特征来自于哪一层计算结果
+    # n：该层block重复次数
+    # m：该层block类型
+    # args：block初始化输入参数
     for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
+        # 将字符串传换成对应模型类
         m = eval(m) if isinstance(m, str) else m  # eval strings
         for j, a in enumerate(args):
             with contextlib.suppress(NameError):
                 args[j] = eval(a) if isinstance(a, str) else a  # eval strings
 
+        # 深度扩展，确定各个stage中block的重复次数
         n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
         if m in {
             Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, MixConv2d, Focus, CrossConv,
             BottleneckCSP, C3, C3TR, C3SPP, C3Ghost, nn.ConvTranspose2d, DWConvTranspose2d, C3x}:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
+                # 中间网络的输出通道需要符合8的倍数, 参考MobileNetV2
                 c2 = make_divisible(c2 * gw, 8)
 
+            # 设置每层网络初始化参数: 输入通道数c1、输出通道数c2、。。。
             args = [c1, c2, *args[1:]]
             if m in {BottleneckCSP, C3, C3TR, C3Ghost, C3x}:
+                # 累加每层的block，每层网络初始化参数： 输入通道数c1、输出通道数c2、block重复次数、。。。
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
+            # 对于BN，仅需指定输入特征的通道数
             args = [ch[f]]
         elif m is Concat:
+            # 对于特征连接层，不需要输入参数，计算经过Concat之后特征层的输出通道数
+            # 注意： 此时f是一个列表，保存了输入特征来自于哪几层网络输出
             c2 = sum(ch[x] for x in f)
         # TODO: channel, gw, gd
         elif m in {Detect, Segment}:

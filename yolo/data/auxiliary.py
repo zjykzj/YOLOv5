@@ -13,9 +13,13 @@ import glob
 import shutil
 import random
 import json
-import torch
 import time
 import yaml
+
+import math
+
+import torch
+import torchvision.transforms.functional as F
 
 import numpy as np
 from PIL import Image
@@ -33,6 +37,18 @@ from ..utils.boxutil import xywh2xyxy
 from ..utils.downloads import download
 from ..utils.misc import emojis, colorstr, is_ascii, is_notebook, is_docker
 from ..utils.logger import LOGGER
+
+
+def coco80_to_coco91_class():  # converts 80-index (val2014) to 91-index (paper)
+    # https://tech.amikelive.com/node-718/what-object-categories-labels-are-in-coco-dataset/
+    # a = np.loadtxt('data/coco.names', dtype='str', delimiter='\n')
+    # b = np.loadtxt('data/coco_paper.names', dtype='str', delimiter='\n')
+    # x1 = [list(a[i] == b).index(True) + 1 for i in range(80)]  # darknet to coco
+    # x2 = [list(b[i] == a).index(True) if any(b[i] == a) else None for i in range(91)]  # coco to darknet
+    return [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34,
+        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
+        64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
 
 
 def exif_transpose(image):
@@ -318,16 +334,18 @@ class HUBDatasetStats():
         return self.im_dir
 
 
-def coco80_to_coco91_class():  # converts 80-index (val2014) to 91-index (paper)
-    # https://tech.amikelive.com/node-718/what-object-categories-labels-are-in-coco-dataset/
-    # a = np.loadtxt('data/coco.names', dtype='str', delimiter='\n')
-    # b = np.loadtxt('data/coco_paper.names', dtype='str', delimiter='\n')
-    # x1 = [list(a[i] == b).index(True) + 1 for i in range(80)]  # darknet to coco
-    # x2 = [list(b[i] == a).index(True) if any(b[i] == a) else None for i in range(91)]  # coco to darknet
-    return [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34,
-        35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-        64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
+# image functions --------------------------------------------------------------------------------------------------
+
+def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
+    # Scales img(bs,3,y,x) by ratio constrained to gs-multiple
+    if ratio == 1.0:
+        return img
+    h, w = img.shape[2:]
+    s = (int(h * ratio), int(w * ratio))  # new size
+    img = F.interpolate(img, size=s, mode='bilinear', align_corners=False)  # resize
+    if not same_shape:  # pad/crop img
+        h, w = (math.ceil(x * ratio / gs) * gs for x in (h, w))
+    return F.pad(img, [0, w - s[1], 0, h - s[0]], value=0.447)  # value = imagenet mean
 
 
 def scale_image(im1_shape, masks, im0_shape, ratio_pad=None):
