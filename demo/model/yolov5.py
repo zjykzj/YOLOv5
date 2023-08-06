@@ -8,6 +8,7 @@
 """
 
 import argparse
+import os.path
 from pathlib import Path
 from copy import deepcopy
 
@@ -16,14 +17,14 @@ import torch
 from yolo import ROOT
 from yolo.model.yolov5 import Model
 from yolo.utils.fileutil import check_yaml
-from yolo.utils.misc import print_args
+from yolo.utils.misc import print_args, colorstr
+from yolo.utils.logger import LOGGER
 from yolo.utils.torchutil import select_device, profile
 from yolo.data.auxiliary import check_dataset
 
 
-def model_save():
-    cfg_file = "configs/model/yolov5s.yaml"
-    model = Model(cfg_file)
+def model_save(opt, device):
+    model = Model(opt.cfg).to(device)
 
     hyp = "configs/hyps/hyp.scratch-low.yaml"
     hyp = check_yaml(hyp)
@@ -34,20 +35,17 @@ def model_save():
     names = {0: 'item'} if single_cls and len(data_dict['names']) != 1 else data_dict['names']  # class names
     nc = 1 if single_cls else int(data_dict['nc'])  # number of classes
 
-    device = ""
-    batch_size = 16
-    device = select_device(device, batch_size=batch_size)
-
     model.nc = nc  # attach number of classes to model
     model.hyp = hyp  # attach hyperparameters to model
     model.class_weights = None  # attach class weights
     model.names = names
-    print(model)
 
     ckpt = {
-        'model': deepcopy(model).half(),
+        'model': deepcopy(model),
     }
-    torch.save(ckpt, "tmp.pt")
+    model_path = Path(os.path.basename(opt.cfg).replace(".yaml", ".pt"))
+    LOGGER.info(colorstr("save model to ") + str(model_path.resolve()))
+    torch.save(ckpt, model_path)
 
 
 if __name__ == '__main__':
@@ -58,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--line-profile', action='store_true', help='profile model speed layer by layer')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
+    parser.add_argument('--save', action='store_true', help='save model')
     opt = parser.parse_args()
     opt.cfg = check_yaml(opt.cfg)  # check YAML
     print_args(vars(opt))
@@ -80,6 +79,9 @@ if __name__ == '__main__':
                 _ = Model(cfg)
             except Exception as e:
                 print(f'Error in {cfg}: {e}')
+
+    elif opt.save:
+        model_save(opt, device)
 
     else:  # report fused model summary
         model.fuse()
