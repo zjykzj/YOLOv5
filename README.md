@@ -67,11 +67,11 @@ python val.py --weights yolov5s.pt --data coco.yaml --img 640
 python val.py --weights yolov5s.pt --data VOC.yaml --img 640
 ```
 
-| Model                                                                                 | size<br><sup>(pixels) | dataset<br> | mAP<sup>val<br>50-95 | mAP<sup>val<br>50 | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@640 (B) |
-|---------------------------------------------------------------------------------------|-----------------------|-------------|----------------------|-------------------|---------------------------------------|--------------------|------------------------|
-| [YOLOv5s](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s.pt)         | 640                   | VOC         | 46.8                 | 73.8              | 2.3                                   | 7.06               | 15.9                   |
-| [YOLOv3](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3.pt)           | 640                   | VOC         | **56.9**             | **81.9**          | 7.1                                   | 61.60              | 154.9                  |
-| [YOLOv3-Tiny](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3-tiny.pt) | 640                   | VOC         | 25.3                 | 54.2              | 1.9                                   | 8.71               | 13.0                   |
+| Model                                                                                     | size<br><sup>(pixels) | dataset<br> | mAP<sup>val<br>50-95 | mAP<sup>val<br>50 | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@640 (B) |
+|-------------------------------------------------------------------------------------------|-----------------------|-------------|----------------------|-------------------|---------------------------------------|--------------------|------------------------|
+| [YOLOv5s](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s_voc.pt)         | 640                   | VOC         | 46.8                 | 73.8              | 2.3                                   | 7.06               | 15.9                   |
+| [YOLOv3](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3_voc.pt)           | 640                   | VOC         | **56.9**             | **81.9**          | 7.1                                   | 61.60              | 154.9                  |
+| [YOLOv3-Tiny](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3-tiny_voc.pt) | 640                   | VOC         | 25.3                 | 54.2              | 1.9                                   | 8.71               | 13.0                   |
 
 ### Predict
 
