@@ -2,30 +2,48 @@
 
 """
 @date: 2023/8/1 下午6:06
-@file: t_yolov2_v2.py
+@file: detect.py
 @author: zj
-@description: 
+@description:
+
+Usage - Show Model Info:
+    $ python demo/model/detect.py --cfg yolov5s.yaml
+
+Usage - Profile Model Forward-Backward:
+    $ python demo/model/detect.py --cfg yolov5s.yaml --profile
+
+Usage - Profile Model Layer-by-Layer:
+    $ python demo/model/detect.py --cfg yolov5s.yaml --line-profile
+
+Usage - Test All Models:
+    $ python demo/model/detect.py --test
+
+Usage - Save Model:
+    $ python demo/model/detect.py --cfg yolov5s.yaml --save
+
 """
 
 import argparse
 import os.path
+
+from datetime import datetime
 from pathlib import Path
-from copy import deepcopy
 
 import torch
 
 from yolo import ROOT
 from yolo.model.yolov5 import Model
-from yolo.utils.fileutil import check_yaml
+from yolo.utils.fileutil import check_yaml, increment_path
 from yolo.utils.misc import print_args, colorstr
 from yolo.utils.logger import LOGGER
 from yolo.utils.torchutil import select_device, profile
+from yolo.utils.gitutil import check_git_info
 from yolo.data.auxiliary import check_dataset
 
+GIT_INFO = check_git_info()
 
-def model_save(opt, device):
-    model = Model(opt.cfg).to(device)
 
+def det_save(opt, model):
     hyp = "configs/hyps/hyp.scratch-low.yaml"
     hyp = check_yaml(hyp)
 
@@ -41,11 +59,20 @@ def model_save(opt, device):
     model.names = names
 
     ckpt = {
-        'model': deepcopy(model),
+        'model': model,
+        'git': GIT_INFO,  # {remote, branch, commit} if a git repo
+        'date': datetime.now().isoformat()
     }
-    model_path = Path(os.path.basename(opt.cfg).replace(".yaml", ".pt"))
-    LOGGER.info(colorstr("save model to ") + str(model_path.resolve()))
-    torch.save(ckpt, model_path)
+
+    # Save
+    save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=False))
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    m_name = os.path.splitext(os.path.basename(opt.cfg))[0] + ".pt"
+    m_pth = os.path.join(save_dir, m_name)
+
+    LOGGER.info(f"save to {colorstr(m_pth)}")
+    torch.save(ckpt, m_pth)
 
 
 if __name__ == '__main__':
@@ -56,7 +83,10 @@ if __name__ == '__main__':
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--line-profile', action='store_true', help='profile model speed layer by layer')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
-    parser.add_argument('--save', action='store_true', help='save model')
+
+    parser.add_argument('--save', action='store_true', help='save cls model')
+    parser.add_argument('--project', default=ROOT / 'runs/detect', help='save to project/name')
+    parser.add_argument('--name', default='exp', help='save to project/name')
     opt = parser.parse_args()
     opt.cfg = check_yaml(opt.cfg)  # check YAML
     print_args(vars(opt))
@@ -81,7 +111,7 @@ if __name__ == '__main__':
                 print(f'Error in {cfg}: {e}')
 
     elif opt.save:
-        model_save(opt, device)
+        det_save(opt, model)
 
     else:  # report fused model summary
         model.fuse()

@@ -2,6 +2,8 @@
 """
 Train a YOLOv5 classifier model on a classification dataset
 
+First, create classifier model using demo/model/classify.py
+
 Usage - Single-GPU training:
     $ python classify/train.py --model yolov5s-cls.pt --data imagenette160 --epochs 5 --img 224
 

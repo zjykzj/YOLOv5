@@ -7,14 +7,6 @@
 @description: 
 """
 
-# YOLOv5 🚀 by Ultralytics, GPL-3.0 license
-"""
-YOLO-specific modules
-
-Usage:
-    $ python models/yolo.py --cfg yolov5s.yaml
-"""
-
 import contextlib
 import math
 from copy import deepcopy
@@ -23,10 +15,9 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-from yolo.data.auxiliary import scale_img
 from yolo.model.impl.autoanchor import check_anchor_order
 from yolo.model.impl.base import BaseModel
-from yolo.model.impl.common import Conv, C3, Concat, SPPF
+from yolo.model.impl.common import Conv, Bottleneck, Concat
 from yolo.model.impl.detect import Detect
 from yolo.utils.logger import LOGGER
 from yolo.utils.misc import colorstr, make_divisible
@@ -88,52 +79,8 @@ class DetectionModel(BaseModel):
         self.info()
         LOGGER.info('')
 
-    def forward(self, x, augment=False, profile=False, visualize=False):
-        if augment:
-            return self._forward_augment(x)  # augmented inference, None
+    def forward(self, x, profile=False, visualize=False):
         return self._forward_once(x, profile, visualize)  # single-scale inference, train
-
-    def _forward_augment(self, x):
-        img_size = x.shape[-2:]  # height, width
-        s = [1, 0.83, 0.67]  # scales
-        f = [None, 3, None]  # flips (2-ud, 3-lr)
-        y = []  # outputs
-        for si, fi in zip(s, f):
-            xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride.max()))
-            yi = self._forward_once(xi)[0]  # forward
-            # cv2.imwrite(f'img_{si}.jpg', 255 * xi[0].cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])  # save
-            yi = self._descale_pred(yi, fi, si, img_size)
-            y.append(yi)
-        y = self._clip_augmented(y)  # clip augmented tails
-        return torch.cat(y, 1), None  # augmented inference, train
-
-    def _descale_pred(self, p, flips, scale, img_size):
-        # de-scale predictions following augmented inference (inverse operation)
-        if self.inplace:
-            p[..., :4] /= scale  # de-scale
-            if flips == 2:
-                p[..., 1] = img_size[0] - p[..., 1]  # de-flip ud
-            elif flips == 3:
-                p[..., 0] = img_size[1] - p[..., 0]  # de-flip lr
-        else:
-            x, y, wh = p[..., 0:1] / scale, p[..., 1:2] / scale, p[..., 2:4] / scale  # de-scale
-            if flips == 2:
-                y = img_size[0] - y  # de-flip ud
-            elif flips == 3:
-                x = img_size[1] - x  # de-flip lr
-            p = torch.cat((x, y, wh, p[..., 4:]), -1)
-        return p
-
-    def _clip_augmented(self, y):
-        # Clip YOLOv5 augmented inference tails
-        nl = self.model[-1].nl  # number of detection layers (P3-P5)
-        g = sum(4 ** x for x in range(nl))  # grid points
-        e = 1  # exclude layer count
-        i = (y[0].shape[1] // g) * sum(4 ** x for x in range(e))  # indices
-        y[0] = y[0][:, :-i]  # large
-        i = (y[-1].shape[1] // g) * sum(4 ** (nl - 1 - x) for x in range(e))  # indices
-        y[-1] = y[-1][:, i:]  # small
-        return y
 
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency
         # https://arxiv.org/abs/1708.02002 section 3.3
@@ -179,7 +126,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
         # 深度扩展，确定各个stage中block的重复次数
         n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
-        if m in {Conv, SPPF, C3, }:
+        if m in {Conv, Bottleneck, }:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 # 中间网络的输出通道需要符合8的倍数, 参考MobileNetV2
@@ -187,10 +134,6 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
             # 设置每层网络初始化参数: 输入通道数c1、输出通道数c2、。。。
             args = [c1, c2, *args[1:]]
-            if m in {C3, }:
-                # 累加每层的block，每层网络初始化参数： 输入通道数c1、输出通道数c2、block重复次数、。。。
-                args.insert(2, n)  # number of repeats
-                n = 1
         elif m is nn.BatchNorm2d:
             # 对于BN，仅需指定输入特征的通道数
             args = [ch[f]]
