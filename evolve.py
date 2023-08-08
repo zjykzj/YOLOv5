@@ -34,8 +34,8 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 from yolo.engine.callbacks import Callbacks
-from yolo.utils.general import check_requirements
-from yolo.utils.misc import colorstr, print_args, print_mutation
+from yolo.utils.general import check_requirements, print_mutation
+from yolo.utils.misc import colorstr, print_args
 from yolo.utils.gitutil import check_git_status, check_git_info
 from yolo.utils.torchutil import select_device
 from yolo.utils.fileutil import increment_path, check_yaml, check_file, get_latest_run

@@ -10,7 +10,7 @@ import subprocess
 import logging
 
 from pathlib import Path
-from zipfile import is_zipfile
+from zipfile import is_zipfile, ZipFile
 from tarfile import is_tarfile
 from itertools import repeat
 from multiprocessing.pool import ThreadPool
