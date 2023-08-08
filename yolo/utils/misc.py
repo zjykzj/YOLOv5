@@ -17,6 +17,7 @@ import inspect
 import platform
 import IPython
 
+import pandas as pd
 from pathlib import Path
 
 from yolo.utils.logger import LOGGER
