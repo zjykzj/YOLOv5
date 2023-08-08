@@ -64,7 +64,7 @@ python val.py --weights yolov5s.pt --data coco.yaml --img 640
 | [YOLOv3](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3.pt)           | 640                   | COCO        | **43.6**             | **63.7**          | 8.0                                   | 61.92              | 155.9                  |
 
 ```shell
-python val.py --weights yolov5s.pt --data VOC.yaml --img 640
+python val.py --weights yolov5s_voc.pt --data VOC.yaml --img 640
 ```
 
 | Model                                                                                     | size<br><sup>(pixels) | dataset<br> | mAP<sup>val<br>50-95 | mAP<sup>val<br>50 | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@640 (B) |
