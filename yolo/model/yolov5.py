@@ -42,6 +42,14 @@ def initialize_weights(model):
 class DetectionModel(BaseModel):
     # YOLOv5 detection model
     def __init__(self, cfg='yolov5s.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+        """
+        以yolov5l.yaml为例
+
+        nc: 80
+        anchors shape: (3, 6)
+        backbone shape: (10, 4)
+        head shape: (15, 4)
+        """
         super().__init__()
         # 加载配置文件
         if isinstance(cfg, dict):
@@ -52,7 +60,7 @@ class DetectionModel(BaseModel):
             with open(cfg, encoding='ascii', errors='ignore') as f:
                 self.yaml = yaml.safe_load(f)  # model dict
 
-        # 确定输入通道ch、输出类别数nc，创建新模型
+        # 确定输入通道ch、输出类别数nc，基于参数配置创建新模型结构
         # Define model
         ch = self.yaml['ch'] = self.yaml.get('ch', ch)  # input channels
         if nc and nc != self.yaml['nc']:
@@ -183,20 +191,12 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
     if act:
         Conv.default_act = eval(act)  # redefine default activation, i.e. Conv.default_act = nn.SiLU()
         LOGGER.info(f"{colorstr('activation:')} {act}")  # print
-    # 每个输出特征层对应的锚点个数
+    # 单个输出层的锚点个数, 比如 (6 // 2) = 3
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
-    # 每个输出特征层的输出通道数，比如: 3 * (80 + 5) = 255
+    # 单个输出层的通道数，比如 3 * (80 + 5) = 255
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
 
-    # layers：保存每层网络
-    # save：
-    # c2：输出通道数
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
-    # i：层下标
-    # f：输入特征来自于哪一层计算结果
-    # n：该层block重复次数
-    # m：该层block类型
-    # args：block初始化输入参数
     for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
         # 将字符串传换成对应模型类
         m = eval(m) if isinstance(m, str) else m  # eval strings
@@ -209,26 +209,32 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         if m in {
             Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, MixConv2d, Focus, CrossConv,
             BottleneckCSP, C3, C3TR, C3SPP, C3Ghost, nn.ConvTranspose2d, DWConvTranspose2d, C3x}:
+            # 对于上述网络结构而言, 支持单个输入特征
+            #
+            # c1: 输入特征的通道数
+            # c2: 输出特征的通道数
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
-                # 中间网络的输出通道需要符合8的倍数, 参考MobileNetV2
+                # 中间层网络的输出特征通道数需要符合8的倍数, 参考MobileNetV2
                 c2 = make_divisible(c2 * gw, 8)
 
-            # 设置每层网络初始化参数: 输入通道数c1、输出通道数c2、。。。
+            # 初始化参数: 输入通道数c1、输出通道数c2、。。。
             args = [c1, c2, *args[1:]]
             if m in {BottleneckCSP, C3, C3TR, C3Ghost, C3x}:
-                # 累加每层的block，每层网络初始化参数： 输入通道数c1、输出通道数c2、block重复次数、。。。
+                # 对于上述网络结构, 还需要增加内部网络的深度扩展参数，
+                # 初始化参数： 输入通道数c1、输出通道数c2、block重复次数、。。。
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
             # 对于BN，仅需指定输入特征的通道数
             args = [ch[f]]
         elif m is Concat:
-            # 对于特征连接层，不需要输入参数，计算经过Concat之后特征层的输出通道数
+            # 对于特征连接层，需要计算经过Concat之后特征层的输出通道数
             # 注意： 此时f是一个列表，保存了输入特征来自于哪几层网络输出
             c2 = sum(ch[x] for x in f)
         # TODO: channel, gw, gd
         elif m in {Detect, Segment}:
+            # 设置输入特征的通道数, 列表格式, 指定来自第几层输出特征的通道数
             args.append([ch[x] for x in f])
             if isinstance(args[1], int):  # number of anchors
                 args[1] = [list(range(args[1] * 2))] * len(f)
@@ -241,14 +247,23 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         else:
             c2 = ch[f]
 
+        # 如果n>1, 重复生成；如果n=1, 单个一次
         m_ = nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
         t = str(m)[8:-2].replace('__main__.', '')  # module type
+        # 计算该模块的参数量
         np = sum(x.numel() for x in m_.parameters())  # number params
+        # 该模块绑定相关属性, 包括
+        # i: 第几层网络
+        # f: 输入特征来自于第几层网络
+        # type: 网络类型
+        # np: 该层网络参数量
         m_.i, m_.f, m_.type, m_.np = i, f, t, np  # attach index, 'from' index, type, number params
         LOGGER.info(f'{i:>3}{str(f):>18}{n_:>3}{np:10.0f}  {t:<40}{str(args):<30}')  # print
+        # ??? 导出export和绘图plot的时候会用到
         save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
         layers.append(m_)
         if i == 0:
             ch = []
+        # 保存上一层输出特征的通道数
         ch.append(c2)
     return nn.Sequential(*layers), sorted(save)
