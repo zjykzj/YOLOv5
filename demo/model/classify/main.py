@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-@date: 2023/8/4 下午6:02
+@date: 2023/8/8 上午10:58
 @file: main.py
 @author: zj
-@description:
-
-Usage - Show Model Info:
-    $ python demo/model/detect/main.py --cfg yolov5l.yaml
-    $ python demo/model/detect/main.py --cfg yolov3.yaml
-
+@description: 
 """
 
 import argparse
@@ -27,22 +22,28 @@ from yolo.utils.logger import LOGGER
 
 GIT_INFO = check_git_info()
 
+from yolov5 import ClassificationModel
+
 
 def create_model(cfg, device):
     assert isinstance(cfg, str) and cfg.endswith('.yaml')
     cfg_name = os.path.basename(cfg)
 
     if cfg_name in ['yolov5l.yaml', 'yolov5m.yaml', 'yolov5n.yaml', 'yolov5s.yaml', 'yolov5x.yaml']:
-        from yolov5 import Model
+        from demo.model.detect.yolov5 import Model, DetectionModel
         model = Model(cfg).to(device)
     elif cfg_name in ['yolov3.yaml', 'yolov3-tiny.yaml', ]:
-        from yolov3 import Model
+        from demo.model.detect.yolov3 import Model, DetectionModel
         model = Model(cfg).to(device)
     else:
         raise ValueError(f"No supported {colorstr(cfg)}.")
 
+    assert isinstance(model, DetectionModel)
+    LOGGER.warning("Convert to ClassificationModel")
+    model = ClassificationModel(model=model, nc=1000, cutoff=opt.cutoff or 10)  # convert to classification model
     model.info()
     LOGGER.info('')
+
     return model
 
 
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
     parser.add_argument('--batch-size', type=int, default=1, help='total batch size for all GPUs')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--cutoff', type=int, default=None, help='Model layer cutoff index for Classify() head')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     parser.add_argument('--line-profile', action='store_true', help='profile model speed layer by layer')
     parser.add_argument('--test', action='store_true', help='test all yolo*.yaml')
