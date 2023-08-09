@@ -51,27 +51,40 @@ onnxruntime/opencv implementation in the deployment module, and so on.
 python -m torch.distributed.run --nproc_per_node 4 --master_port 53122 train.py --data coco.yaml --weights "" --cfg yolov5s.yaml --img 640 --device 0,1,2,3
 ```
 
+* Classify
+
+```shell
+python -m torch.distributed.run --nproc_per_node 4 --master_port 25123 classify/train.py --model yolov5s-cls.pt --data imagenet --img 224 --epochs 90 --device 0,1,2,3
+```
+
 ### Eval
+
+* Detect
 
 ```shell
 python val.py --weights yolov5s.pt --data coco.yaml --img 640
-```
-
-| Model                                                                                 | size<br><sup>(pixels) | dataset<br> | mAP<sup>val<br>50-95 | mAP<sup>val<br>50 | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@640 (B) |
-|---------------------------------------------------------------------------------------|-----------------------|-------------|----------------------|-------------------|---------------------------------------|--------------------|------------------------|
-| [YOLOv5n](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5n.pt)         | 640                   | COCO        | 24.4                 | 41.3              | 3.5                                   | 1.87               | 4.5                    |
-| [YOLOv5s](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s.pt)         | 640                   | COCO        | 34.7                 | 53.8              | 3.6                                   | 7.23               | 16.4                   |
-| [YOLOv3](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3.pt)           | 640                   | COCO        | **43.6**             | **63.7**          | 8.0                                   | 61.92              | 155.9                  |
-
-```shell
 python val.py --weights yolov5s_voc.pt --data VOC.yaml --img 640
 ```
 
 | Model                                                                                     | size<br><sup>(pixels) | dataset<br> | mAP<sup>val<br>50-95 | mAP<sup>val<br>50 | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@640 (B) |
 |-------------------------------------------------------------------------------------------|-----------------------|-------------|----------------------|-------------------|---------------------------------------|--------------------|------------------------|
+| [YOLOv5n](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5n.pt)             | 640                   | COCO        | 24.4                 | 41.3              | 3.5                                   | 1.87               | 4.5                    |
+| [YOLOv5s](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s.pt)             | 640                   | COCO        | 34.7                 | 53.8              | 3.6                                   | 7.23               | 16.4                   |
+| [YOLOv3](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3.pt)               | 640                   | COCO        | **43.6**             | **63.7**          | 8.0                                   | 61.92              | 155.9                  |
+|                                                                                           |                       |             |                      |                   |                                       |                    |                        |
 | [YOLOv5s](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s_voc.pt)         | 640                   | VOC         | 46.8                 | 73.8              | 2.3                                   | 7.06               | 15.9                   |
 | [YOLOv3](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3_voc.pt)           | 640                   | VOC         | **56.9**             | **81.9**          | 7.1                                   | 61.60              | 154.9                  |
 | [YOLOv3-Tiny](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3-tiny_voc.pt) | 640                   | VOC         | 25.3                 | 54.2              | 1.9                                   | 8.71               | 13.0                   |
+
+* Classify
+
+```shell
+python classify/val.py --weights yolov5s-cls.pt --data ../datasets/imagenet --img 224
+```
+
+| Model                                                                                 | size<br><sup>(pixels) | acc<br><sup>top1 | acc<br><sup>top5 | Training<br><sup>90 epochs<br>4xRTX3090 (hours) | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@224 (B) |
+|---------------------------------------------------------------------------------------|-----------------------|------------------|------------------|-------------------------------------------------|---------------------------------------|--------------------|------------------------|
+| [YOLOv5s-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s-cls.pt) | 224                   | 64.9             | 86.0             | 38.831                                          | **0.3**                               | **6.45**           | **11.4**                |
 
 ### Predict
 
@@ -80,6 +93,12 @@ python detect.py --weights yolov5n.pt --source assets/coco/
 ```
 
 <p align="left"><img src="assets/results/coco/bus.jpg" height="240"\>  <img src="assets/results/coco/zidane.jpg" height="240"\></p>
+
+```shell
+python classify/predict.py --weights yolov5s-cls.pt --source assets/imagenet-val/ --imgsz 224
+```
+
+<p align="left"><img src="assets/results/imagenet-val/ILSVRC2012_val_00016035.JPEG" height="240"\>  <img src="assets/results/imagenet-val/ILSVRC2012_val_00033217.JPEG" height="240"\></p>
 
 ## Maintainers
 
