@@ -89,9 +89,9 @@ python classify/val.py --weights yolov5s-cls.pt --data ../datasets/imagenet --im
 |-----------------------------------------------------------------------------------------------|-----------------------|------------------|------------------|-------------------------------------------------|---------------------------------------|--------------------|------------------------|
 | [YOLOv5s-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s-cls.pt)         | 224                   | 64.9             | 86.0             | 38.831                                          | **0.3**                               | **6.45**           | **11.4**               |
 | [YOLOv3-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3-cls.pt)           | 224                   | 68.3             | 88.2             | 56.517                                          | **1.0**                               | **16.81**          | **98.6**               |
-| [resnet](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/resnet50.pt)                 | 224                   | 69.3             | 88.2             | 94.422                                          | **0.4**                               | **25.6**           | **8.5**                |
-| [EfficientNet-B0](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/efficientnet_b0.pt) | 224                   | 71.0             | 90.2             | 77.515                                          | **0.5**                               | **5.3**            | **1.0**                |
-
+| [ResNet50](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/resnet50.pt)               | 224                   | 69.3             | 88.2             | 94.422                                          | **0.4**                               | **25.6**           | **8.5**                |
+| [EfficientNet_b0](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/efficientnet_b0.pt) | 224                   | 71.0             | 90.2             | 77.515                                          | **0.5**                               | **5.3**            | **1.0**                |
+  
 ### Predict
 
 ```shell
