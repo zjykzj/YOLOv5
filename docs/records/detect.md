@@ -243,25 +243,24 @@ YOLOv5 🚀 2023-8-8 Python-3.8.16 torch-1.13.1+cu117 CUDA:0 (NVIDIA GeForce RTX
 Fusing layers... 
 YOLOv5m summary: 212 layers, 21172173 parameters, 0 gradients, 48.9 GFLOPs
 val: Scanning /data/sde/coco/coco/val2017.cache... 4952 images, 48 backgrounds, 0 corrupt: 100%|██████████| 5000/5000 00:00
-                 Class     Images  Instances          P          R      mAP50   mAP50-95:  81%|████████  | 127/157 11:15
-                 Class     Images  Instances            P          R      mAP50   mAP50-95: 100%|██████████| 157/157 13:45
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 157/157 00:50
                    all       5000      36335      0.681      0.573      0.613      0.426
-Speed: 0.2ms pre-process, 9.0ms inference, 13.6ms NMS per image at shape (32, 3, 640, 640)
+Speed: 0.1ms pre-process, 3.7ms inference, 1.2ms NMS per image at shape (32, 3, 640, 640)
 
-Evaluating pycocotools mAP... saving runs/val/exp13/best_predictions.json...
-loading annotations into memory...
-Done (t=0.80s)
+Evaluating pycocotools mAP... saving runs/val/exp16/best_predictions.json...
+	loading annotations into memory...
+Done (t=0.78s)
 creating index...
 index created!
 Loading and preparing results...
-DONE (t=5.00s)
+DONE (t=4.90s)
 creating index...
 index created!
 Running per image evaluation...
 Evaluate annotation type *bbox*
-DONE (t=57.95s).
+DONE (t=51.29s).
 Accumulating evaluation results...
-DONE (t=16.11s).
+DONE (t=12.16s).
  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.429
  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.621
  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.464
@@ -274,7 +273,7 @@ DONE (t=16.11s).
  Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.418
  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.668
  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.766
-Results saved to runs/val/exp13
+Results saved to runs/val/exp16
 ```
 
 ## YOLOv5n with COCO
