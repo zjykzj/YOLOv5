@@ -4,6 +4,7 @@
 * ImageNet
   * YOLOv5s
   * YOLOv3
+  * ResNet50
   * EfficientNet-B0
 
 ## YOLOv5s with ImageNet
@@ -86,6 +87,38 @@ validating: 100%|██████████| 391/391 00:59
 ...
 Speed: 0.1ms pre-process, 0.9ms inference, 0.0ms post-process per image at shape (1, 3, 224, 224)
 Results saved to runs/val-cls/exp11
+```
+
+## ResNet50 with COCO
+
+```text
+python -m torch.distributed.run --nproc_per_node 4 --master_port 25123 classify/train.py --model resnet50 --data imagenet --img 224 --epochs 90 --device 0,1,2,3
+...
+...
+     90/90     1.81G        2.46        2.29       0.693       0.891: 100%|██████████| 20019/20019 34:30
+
+Training complete (94.422 hours)
+Results saved to runs/train-cls/exp27
+Predict:         python classify/predict.py --weights runs/train-cls/exp27/weights/best.pt --source im.jpg
+Validate:        python classify/val.py --weights runs/train-cls/exp27/weights/best.pt --data /home/zj/pp/datasets/imagenet
+Export:          python export.py --weights runs/train-cls/exp27/weights/best.pt --include onnx
+PyTorch Hub:     model = torch.hub.load('ultralytics/yolov5', 'custom', 'runs/train-cls/exp27/weights/best.pt')
+Visualize:       https://netron.app
+```
+
+```shell
+$ python classify/val.py --weights runs/train-cls/exp27/weights/best.pt --data ../datasets/imagenet --img 224                                                                                                                                       
+val: data=../datasets/imagenet, weights=['runs/train-cls/exp27/weights/best.pt'], batch_size=128, imgsz=224, device=, workers=8, verbose=True, project=runs/val-cls, name=exp, exist_ok=False, half=False, dnn=False                                                              
+requirements: /home/zj/pp/YOLOv5/requirements.txt not found, check failed.                                                                                                                                                                                                        
+YOLOv5 🚀 2023-8-8 Python-3.8.16 torch-1.13.1+cu117 CUDA:0 (NVIDIA GeForce RTX 3090, 24268MiB)                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                  
+validating: 100%|██████████| 391/391 00:35                                                                                                                                                                                                                                        
+                   Class      Images    top1_acc    top5_acc                                                                                                                                                                                                                      
+                     all       50000       0.694       0.891  
+...
+...
+Speed: 0.0ms pre-process, 0.4ms inference, 0.0ms post-process per image at shape (1, 3, 224, 224)
+Results saved to runs/val-cls/exp13
 ```
 
 ## EfficientNet-B0 with COCO
