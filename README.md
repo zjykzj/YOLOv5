@@ -68,6 +68,8 @@ python val.py --weights yolov5s_voc.pt --data VOC.yaml --img 640
 
 | Model                                                                                     | size<br><sup>(pixels) | dataset<br> | mAP<sup>val<br>50-95 | mAP<sup>val<br>50 | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@640 (B) |
 |-------------------------------------------------------------------------------------------|-----------------------|-------------|----------------------|-------------------|---------------------------------------|--------------------|------------------------|
+| [YOLOv5x](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5x.pt)             | 640                   | COCO        | 48.1                 | 66.7              | 19.7                                  | 86.71              | 205.5                  |
+| [YOLOv5l](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5l.pt)             | 640                   | COCO        | 46.2                 | 65.2              | 11.7                                  | 46.53              | 109.0                  |
 | [YOLOv5m](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5m.pt)             | 640                   | COCO        | 42.9                 | 62.1              | 22.8                                  | 21.17              | 48.9                   |
 | [YOLOv5n](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5n.pt)             | 640                   | COCO        | 24.4                 | 41.3              | 3.5                                   | 1.87               | 4.5                    |
 | [YOLOv5s](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s.pt)             | 640                   | COCO        | 34.7                 | 53.8              | 3.6                                   | 7.23               | 16.4                   |
@@ -83,10 +85,11 @@ python val.py --weights yolov5s_voc.pt --data VOC.yaml --img 640
 python classify/val.py --weights yolov5s-cls.pt --data ../datasets/imagenet --img 224
 ```
 
-| Model                                                                                 | size<br><sup>(pixels) | acc<br><sup>top1 | acc<br><sup>top5 | Training<br><sup>90 epochs<br>4xRTX3090 (hours) | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@224 (B) |
-|---------------------------------------------------------------------------------------|-----------------------|------------------|------------------|-------------------------------------------------|---------------------------------------|--------------------|------------------------|
-| [YOLOv5s-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s-cls.pt) | 224                   | 64.9             | 86.0             | 38.831                                          | **0.3**                               | **6.45**           | **11.4**               |
-| [YOLOv3-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3-cls.pt)   | 224                   | 68.3             | 88.2             | 56.517                                          | **1.0**                               | **16.81**          | **98.6**               |
+| Model                                                                                             | size<br><sup>(pixels) | acc<br><sup>top1 | acc<br><sup>top5 | Training<br><sup>90 epochs<br>4xRTX3090 (hours) | Speed<br><sup>PyTorch RTX3090<br>(ms) | params<br><sup>(M) | FLOPs<br><sup>@224 (B) |
+|---------------------------------------------------------------------------------------------------|-----------------------|------------------|------------------|-------------------------------------------------|---------------------------------------|--------------------|------------------------|
+| [YOLOv5s-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov5s-cls.pt)             | 224                   | 64.9             | 86.0             | 38.831                                          | **0.3**                               | **6.45**           | **11.4**               |
+| [YOLOv3-cls](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/yolov3-cls.pt)               | 224                   | 68.3             | 88.2             | 56.517                                          | **1.0**                               | **16.81**          | **98.6**               |
+| [EfficientNet-B0](https://github.com/zjykzj/YOLOv5/releases/download/v1.0/efficientnet-b0-cls.pt) | 224                   | 71.0             | 90.2             | 77.515                                          | **0.5**                               | **5.3**            | **1.0**                |
 
 ### Predict
 

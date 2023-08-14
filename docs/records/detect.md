@@ -1,6 +1,8 @@
 # Detect
 
 * COCO
+  * yolov5x
+  * yolov5l
   * yolov5m
   * yolov5n
   * yolov5s
@@ -9,6 +11,182 @@
     * yolov5s
     * yolov3
     * yolov3-tiny
+
+## YOLOv5x with COCO
+
+```text
+python -m torch.distributed.run --nproc_per_node 4 --master_port 36232 train.py  --data coco.yaml --weights "" --cfg yolov5x.yaml --img 640 --device 0,1,2,3
+...
+...
+100 epochs completed in 136.361 hours.                                                                                                                                                                                                                                            
+Optimizer stripped from runs/train/exp17/weights/last.pt, 174.1MB                                                                                                                                                                                                                 
+Optimizer stripped from runs/train/exp17/weights/best.pt, 174.1MB                                                                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                  
+Validating runs/train/exp17/weights/best.pt...                                                                                                                                                                                                                                    
+Fusing layers...                                                                                                                                                                                                                                                                  
+YOLOv5x summary: 322 layers, 86705005 parameters, 0 gradients, 205.5 GFLOPs                                                                                                                                                                                                       
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 625/625 03:13                                                                                                                                                          
+                   all       5000      36335      0.729      0.599      0.659      0.479      
+...
+...
+Evaluating pycocotools mAP... saving runs/train/exp17/_predictions.json...
+loading annotations into memory...
+Done (t=0.42s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=6.23s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=53.64s).
+Accumulating evaluation results...
+DONE (t=12.22s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.481
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.665
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.524
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.316
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.534
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.617
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.369
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.609
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.661
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.496
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.717
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.813
+Results saved to runs/train/exp17
+```
+
+```text
+$ python val.py --weights runs/train/exp17/weights/best.pt --data coco.yaml --img 640
+val: data=/home/zj/pp/YOLOv5/configs/data/coco.yaml, weights=['runs/train/exp17/weights/best.pt'], batch_size=32, imgsz=640, conf_thres=0.001, iou_thres=0.6, max_det=300, task=val, device=, workers=8, single_cls=False, augment=False, verbose=False, save_txt=False, save_hybrid=False, save_conf=False, save_json=True, project=runs/val, name=exp, exist_ok=False, half=False, dnn=False
+requirements: /home/zj/pp/YOLOv5/requirements.txt not found, check failed.
+YOLOv5 🚀 2023-8-8 Python-3.8.16 torch-1.13.1+cu117 CUDA:0 (NVIDIA GeForce RTX 3090, 24268MiB)
+
+Fusing layers... 
+YOLOv5x summary: 322 layers, 86705005 parameters, 0 gradients, 205.5 GFLOPs
+val: Scanning /data/sde/coco/coco/val2017.cache... 4952 images, 48 backgrounds, 0 corrupt: 100%|██████████| 5000/5000 00:00
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 157/157 03:03
+                   all       5000      36335      0.727      0.603      0.661      0.478
+Speed: 0.2ms pre-process, 17.0ms inference, 2.5ms NMS per image at shape (32, 3, 640, 640)
+
+Evaluating pycocotools mAP... saving runs/val/exp15/best_predictions.json...
+loading annotations into memory...
+Done (t=0.40s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=4.32s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=46.90s).
+Accumulating evaluation results...
+DONE (t=10.36s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.481
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.667
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.521
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.315
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.532
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.616
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.369
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.605
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.654
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.484
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.710
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.808
+Results saved to runs/val/exp15
+```
+
+## YOLOv5l with COCO
+
+```text
+python -m torch.distributed.run --nproc_per_node 4 --master_port 53122 train.py --data coco.yaml --weights "" --cfg yolov5l.yaml --img 640 --device 0,1,2,3
+...
+...
+100 epochs completed in 114.272 hours.                              
+Optimizer stripped from runs/train/exp15/weights/last.pt, 93.6MB                                                                         
+Optimizer stripped from runs/train/exp15/weights/best.pt, 93.6MB                                                                         
+
+Validating runs/train/exp15/weights/best.pt...                      
+Fusing layers...                                                    
+YOLOv5l summary: 267 layers, 46533693 parameters, 0 gradients, 109.0 GFLOPs                                                              
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 625/625 14:36                                                                                                                                                          
+                   all       5000      36335      0.704      0.589      0.642       0.46           
+...
+...
+Evaluating pycocotools mAP... saving runs/train/exp15/_predictions.json...
+loading annotations into memory...
+Done (t=0.42s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=5.97s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=53.13s).
+Accumulating evaluation results...
+DONE (t=12.24s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.464
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.650
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.505
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.291
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.519
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.596
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.360
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.594
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.647
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.475
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.705
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.791
+Results saved to runs/train/exp15
+```
+
+```shell
+$ python val.py --weights runs/train/exp15/weights/best.pt --data coco.yaml --img 640
+val: data=/home/zj/pp/YOLOv5/configs/data/coco.yaml, weights=['runs/train/exp15/weights/best.pt'], batch_size=32, imgsz=640, conf_thres=0.001, iou_thres=0.6, max_det=300, task=val, device=, workers=8, single_cls=False, augment=False, verbose=False, save_txt=False, save_hybrid=False, save_conf=False, save_json=True, project=runs/val, name=exp, exist_ok=False, half=False, dnn=False
+requirements: /home/zj/pp/YOLOv5/requirements.txt not found, check failed.
+YOLOv5 🚀 2023-8-8 Python-3.8.16 torch-1.13.1+cu117 CUDA:0 (NVIDIA GeForce RTX 3090, 24268MiB)
+
+Fusing layers... 
+YOLOv5l summary: 267 layers, 46533693 parameters, 0 gradients, 109.0 GFLOPs
+val: Scanning /data/sde/coco/coco/val2017.cache... 4952 images, 48 backgrounds, 0 corrupt: 100%|██████████| 5000/5000 00:00
+                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 157/157 02:21
+                   all       5000      36335      0.704      0.592      0.645      0.459
+Speed: 0.2ms pre-process, 9.3ms inference, 2.2ms NMS per image at shape (32, 3, 640, 640)
+
+Evaluating pycocotools mAP... saving runs/val/exp14/best_predictions.json...
+loading annotations into memory...
+Done (t=0.41s)
+creating index...
+index created!
+Loading and preparing results...
+DONE (t=5.21s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=49.23s).
+Accumulating evaluation results...
+DONE (t=11.54s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.462
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.652
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.500
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.291
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.517
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.595
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.360
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.589
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.639
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.468
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.695
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.786
+Results saved to runs/val/exp14
+```
 
 ## YOLOv5m with COCO
 
@@ -66,7 +244,7 @@ Fusing layers...
 YOLOv5m summary: 212 layers, 21172173 parameters, 0 gradients, 48.9 GFLOPs
 val: Scanning /data/sde/coco/coco/val2017.cache... 4952 images, 48 backgrounds, 0 corrupt: 100%|██████████| 5000/5000 00:00
                  Class     Images  Instances          P          R      mAP50   mAP50-95:  81%|████████  | 127/157 11:15
-                 Class     Images  Instances          P          R      mAP50   mAP50-95: 100%|██████████| 157/157 13:45
+                 Class     Images  Instances            P          R      mAP50   mAP50-95: 100%|██████████| 157/157 13:45
                    all       5000      36335      0.681      0.573      0.613      0.426
 Speed: 0.2ms pre-process, 9.0ms inference, 13.6ms NMS per image at shape (32, 3, 640, 640)
 
