@@ -7,6 +7,8 @@ Format                      | `export.py --include`         | Model
 PyTorch                     | -                             | yolov5s.pt
 TorchScript                 | `torchscript`                 | yolov5s.torchscript
 ONNX                        | `onnx`                        | yolov5s.onnx
+OpenVINO                    | `openvino`                    | yolov5s_openvino_model/
+TensorRT                    | `engine`                      | yolov5s.engine
 
 Requirements:
     $ pip install -r requirements.txt coremltools onnx onnx-simplifier onnxruntime openvino-dev tensorflow-cpu  # CPU
@@ -19,6 +21,8 @@ Inference:
     $ python detect.py --weights yolov5s.pt                 # PyTorch
                                  yolov5s.torchscript        # TorchScript
                                  yolov5s.onnx               # ONNX Runtime or OpenCV DNN with --dnn
+                                 yolov5s_openvino_model     # OpenVINO
+                                 yolov5s.engine             # TensorRT
 """
 
 import argparse
@@ -28,9 +32,11 @@ import sys
 import time
 import json
 import warnings
-from pathlib import Path
+import subprocess
 
 import pandas as pd
+from pathlib import Path
+
 import torch
 from torch.utils.mobile_optimizer import optimize_for_mobile
 
@@ -43,9 +49,9 @@ if platform.system() != 'Windows':
 
 from yolo.utils.logger import LOGGER
 from yolo.utils.misc import print_args, colorstr, get_default_args
-from yolo.utils.general import check_img_size, check_requirements
+from yolo.utils.general import check_img_size, check_requirements, check_version
 from yolo.utils.torchutil import smart_inference_mode
-from yolo.utils.fileutil import url2file, file_size
+from yolo.utils.fileutil import url2file, file_size, yaml_save
 from yolo.utils.torchutil import select_device
 from yolo.utils.decorators import Profile
 from yolo.model.impl.experimental import attempt_load
@@ -60,6 +66,8 @@ def export_formats():
         ['PyTorch', '-', '.pt', True, True],
         ['TorchScript', 'torchscript', '.torchscript', True, True],
         ['ONNX', 'onnx', '.onnx', True, True],
+        ['OpenVINO', 'openvino', '_openvino_model', True, False],
+        ['TensorRT', 'engine', '.engine', False, True],
     ]
     return pd.DataFrame(x, columns=['Format', 'Argument', 'Suffix', 'CPU', 'GPU'])
 
@@ -154,6 +162,83 @@ def export_onnx(model, im, file, opset, dynamic, simplify, prefix=colorstr('ONNX
     return f, model_onnx
 
 
+@try_export
+def export_openvino(file, metadata, half, prefix=colorstr('OpenVINO:')):
+    # YOLOv5 OpenVINO export
+    check_requirements('openvino-dev')  # requires openvino-dev: https://pypi.org/project/openvino-dev/
+    import openvino.inference_engine as ie
+
+    LOGGER.info(f'\n{prefix} starting export with openvino {ie.__version__}...')
+    f = str(file).replace('.pt', f'_openvino_model{os.sep}')
+
+    cmd = f"mo --input_model {file.with_suffix('.onnx')} --output_dir {f} --data_type {'FP16' if half else 'FP32'}"
+    subprocess.run(cmd.split(), check=True, env=os.environ)  # export
+    yaml_save(Path(f) / file.with_suffix('.yaml').name, metadata)  # add metadata.yaml
+    return f, None
+
+
+@try_export
+def export_engine(model, im, file, half, dynamic, simplify, workspace=4, verbose=False, prefix=colorstr('TensorRT:')):
+    # YOLOv5 TensorRT export https://developer.nvidia.com/tensorrt
+    assert im.device.type != 'cpu', 'export running on CPU but must be on GPU, i.e. `python export.py --device 0`'
+    try:
+        import tensorrt as trt
+    except Exception:
+        if platform.system() == 'Linux':
+            check_requirements('nvidia-tensorrt', cmds='-U --index-url https://pypi.ngc.nvidia.com')
+        import tensorrt as trt
+
+    if trt.__version__[0] == '7':  # TensorRT 7 handling https://github.com/ultralytics/yolov5/issues/6012
+        grid = model.model[-1].anchor_grid
+        model.model[-1].anchor_grid = [a[..., :1, :1, :] for a in grid]
+        export_onnx(model, im, file, 12, dynamic, simplify)  # opset 12
+        model.model[-1].anchor_grid = grid
+    else:  # TensorRT >= 8
+        check_version(trt.__version__, '8.0.0', hard=True)  # require tensorrt>=8.0.0
+        export_onnx(model, im, file, 12, dynamic, simplify)  # opset 12
+    onnx = file.with_suffix('.onnx')
+
+    LOGGER.info(f'\n{prefix} starting export with TensorRT {trt.__version__}...')
+    assert onnx.exists(), f'failed to export ONNX file: {onnx}'
+    f = file.with_suffix('.engine')  # TensorRT engine file
+    logger = trt.Logger(trt.Logger.INFO)
+    if verbose:
+        logger.min_severity = trt.Logger.Severity.VERBOSE
+
+    builder = trt.Builder(logger)
+    config = builder.create_builder_config()
+    config.max_workspace_size = workspace * 1 << 30
+    # config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace << 30)  # fix TRT 8.4 deprecation notice
+
+    flag = (1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+    network = builder.create_network(flag)
+    parser = trt.OnnxParser(network, logger)
+    if not parser.parse_from_file(str(onnx)):
+        raise RuntimeError(f'failed to load ONNX file: {onnx}')
+
+    inputs = [network.get_input(i) for i in range(network.num_inputs)]
+    outputs = [network.get_output(i) for i in range(network.num_outputs)]
+    for inp in inputs:
+        LOGGER.info(f'{prefix} input "{inp.name}" with shape{inp.shape} {inp.dtype}')
+    for out in outputs:
+        LOGGER.info(f'{prefix} output "{out.name}" with shape{out.shape} {out.dtype}')
+
+    if dynamic:
+        if im.shape[0] <= 1:
+            LOGGER.warning(f"{prefix} WARNING ⚠️ --dynamic model requires maximum --batch-size argument")
+        profile = builder.create_optimization_profile()
+        for inp in inputs:
+            profile.set_shape(inp.name, (1, *im.shape[1:]), (max(1, im.shape[0] // 2), *im.shape[1:]), im.shape)
+        config.add_optimization_profile(profile)
+
+    LOGGER.info(f'{prefix} building FP{16 if builder.platform_has_fast_fp16 and half else 32} engine as {f}')
+    if builder.platform_has_fast_fp16 and half:
+        config.set_flag(trt.BuilderFlag.FP16)
+    with builder.build_engine(network, config) as engine, open(f, 'wb') as t:
+        t.write(engine.serialize())
+    return f, None
+
+
 @smart_inference_mode()
 def run(
         weights=ROOT / 'yolov5s.pt',  # weights path
@@ -167,13 +252,15 @@ def run(
         dynamic=False,  # ONNX/TF/TensorRT: dynamic axes
         simplify=False,  # ONNX: simplify model
         opset=12,  # ONNX: opset version
+        verbose=False,  # TensorRT: verbose log
+        workspace=4,  # TensorRT: workspace size (GB)
 ):
     t = time.time()
     include = [x.lower() for x in include]  # to lowercase
     fmts = tuple(export_formats()['Argument'][1:])  # --include arguments
     flags = [x in include for x in fmts]
     assert sum(flags) == len(include), f'ERROR: Invalid --include {include}, valid --include arguments are {fmts}'
-    jit, onnx = flags  # export booleans
+    jit, onnx, xml, engine = flags  # export booleans
     file = Path(url2file(weights) if str(weights).startswith(('http:/', 'https:/')) else weights)  # PyTorch weights
 
     # Load PyTorch model
@@ -214,8 +301,12 @@ def run(
     warnings.filterwarnings(action='ignore', category=torch.jit.TracerWarning)  # suppress TracerWarning
     if jit:  # TorchScript
         f[0], _ = export_torchscript(model, im, file, optimize)
-    if onnx:  # OpenVINO requires ONNX
-        f[1], _ = export_onnx(model, im, file, opset, dynamic, simplify)
+    if engine:  # TensorRT required before ONNX
+        f[1], _ = export_engine(model, im, file, half, dynamic, simplify, workspace, verbose)
+    if onnx or xml:  # OpenVINO requires ONNX
+        f[2], _ = export_onnx(model, im, file, opset, dynamic, simplify)
+    if xml:  # OpenVINO
+        f[3], _ = export_openvino(file, metadata, half)
 
     # Finish
     f = [str(x) for x in f if x]  # filter out '' and None
@@ -246,6 +337,8 @@ def parse_opt():
     parser.add_argument('--dynamic', action='store_true', help='ONNX: dynamic axes')
     parser.add_argument('--simplify', action='store_true', help='ONNX: simplify model')
     parser.add_argument('--opset', type=int, default=12, help='ONNX: opset version')
+    parser.add_argument('--verbose', action='store_true', help='TensorRT: verbose log')
+    parser.add_argument('--workspace', type=int, default=4, help='TensorRT: workspace size (GB)')
     parser.add_argument(
         '--include',
         nargs='+',

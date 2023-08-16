@@ -125,6 +125,7 @@ def run(
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
+        # 被train.py调用
         device, pt, jit, engine = next(model.parameters()).device, True, False, False  # get model device, PyTorch model
         half &= device.type != 'cpu'  # half precision only supported on CUDA
         model.half() if half else model.float()
@@ -190,7 +191,7 @@ def run(
     pbar = tqdm(dataloader, desc=s, bar_format=TQDM_BAR_FORMAT)  # progress bar
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
         callbacks.run('on_val_batch_start')
-        with dt[0]:
+        with dt[0]:  # 预处理耗时
             if cuda:
                 im = im.to(device, non_blocking=True)
                 targets = targets.to(device)
@@ -199,7 +200,7 @@ def run(
             nb, _, height, width = im.shape  # batch size, channels, height, width
 
         # Inference
-        with dt[1]:
+        with dt[1]:  # 推理耗时
             preds, train_out = model(im) if compute_loss else (model(im, augment=augment), None)
 
         # Loss
@@ -209,7 +210,7 @@ def run(
         # NMS
         targets[:, 2:] *= torch.tensor((width, height, width, height), device=device)  # to pixels
         lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
-        with dt[2]:
+        with dt[2]:  # NMS耗时
             preds = non_max_suppression(preds,
                                         conf_thres,
                                         iou_thres,

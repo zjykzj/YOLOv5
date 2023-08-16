@@ -16,6 +16,8 @@ Usage - formats:
     $ python detect.py --weights yolov5s.pt                 # PyTorch
                                  yolov5s.torchscript        # TorchScript
                                  yolov5s.onnx               # ONNX Runtime or OpenCV DNN with --dnn
+                                 yolov5s_openvino_model     # OpenVINO
+                                 yolov5s.engine             # TensorRT
 """
 
 import argparse
@@ -115,7 +117,7 @@ def run(
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
     for path, im, im0s, vid_cap, s in dataset:
-        with dt[0]:
+        with dt[0]:  # 预处理耗时
             im = torch.from_numpy(im).to(model.device)
             im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
             im /= 255  # 0 - 255 to 0.0 - 1.0
@@ -123,12 +125,12 @@ def run(
                 im = im[None]  # expand for batch dim
 
         # Inference
-        with dt[1]:
+        with dt[1]:  # 推理耗时
             visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
             pred = model(im, augment=augment, visualize=visualize)
 
         # NMS
-        with dt[2]:
+        with dt[2]:  # NMS耗时
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
         # Second-stage classifier (optional)
@@ -220,6 +222,7 @@ def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path or triton URL')
     parser.add_argument('--source', type=str, default=ROOT / 'assets/coco', help='file/dir/URL/glob/screen/0(webcam)')
+    # 通过data参数读取配置文件，获得类名列表
     parser.add_argument('--data', type=str, default=ROOT / 'configs' / 'data/coco128.yaml',
                         help='(optional) dataset.yaml path')
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')

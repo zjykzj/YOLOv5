@@ -46,6 +46,9 @@ class WorkingDirectory(contextlib.ContextDecorator):
 
 
 class Profile(contextlib.ContextDecorator):
+    """
+    耗时计算，使用上下文管理器作为基类，继承__enter__和__exit__函数
+    """
     # YOLOv5 Profile class. Usage: @Profile() decorator or 'with Profile():' context manager
     def __init__(self, t=0.0):
         self.t = t
