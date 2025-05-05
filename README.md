@@ -15,6 +15,10 @@
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt=""></a>
 </p>
 
+**This warehouse is a modified version of the [ultralytics/yolov5](https://github.com/ultralytics/yolov5) project, which has reduced some inference implementation and changed the project layout, making it easier and more intuitive to understand and use the YOLOv5 project. Friends who are interested in this can try operating it.**
+
+**Additionally, The official team has launched [ultralytics/ultralytics](https://github.com/ultralytics/ultralytics) and supports upgrades in the new repository, which includes the implementation of the YOLOV8/YOLO11 algorithm and provides the YOLOv5 algorithm (YOLOv5 backbone + YOLOv8 head).**
+
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
